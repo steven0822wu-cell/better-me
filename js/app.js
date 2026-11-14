@@ -3,6 +3,7 @@ import { state, setViewing, onChange } from './state.js';
 import { applyTheme, applyCachedTheme } from './theme.js';
 import { getUsdIdr } from './currency.js';
 import { toast } from './ui.js';
+import { buildAmbient } from './fx.js';
 import home from './modules/home.js';
 import settings from './modules/settings.js';
 import { placeholder } from './modules/placeholder.js';
@@ -39,6 +40,7 @@ async function init() {
   state.other = profiles.find(p => p.id !== state.me.id) || null;
 
   applyTheme(state.me.theme);
+  buildAmbient();
   getUsdIdr(); // pre-load kurs di background
 
   buildNav();
@@ -96,6 +98,7 @@ function render() {
   const mod = MODULES[route] || placeholder(route);
   const el = $('#view');
   el.innerHTML = '';
+  el.classList.remove('fx-enter'); void el.offsetWidth; el.classList.add('fx-enter');
   Promise.resolve(mod.render(el, state)).catch(e => {
     console.error(e);
     toast(e.message, 'error');

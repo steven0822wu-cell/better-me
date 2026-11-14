@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow:wght@400;600&family=Cormorant+Garamond:wght@500;700&family=EB+Garamond:wght@400;600&family=Inter:wght@400;600;700&family=Noto+Serif+TC:wght@400;700&family=Nunito:wght@400;700&family=Orbitron:wght@600;800&family=Space+Grotesk:wght@400;600;700&display=swap">
   <link rel="stylesheet" href="css/themes.css">
   <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/fx.css">
 </head>
 <body class="cover-page">
   <main class="cover">
@@ -42,7 +43,9 @@
     import { login } from './js/auth.js';
     import { ROLE_EMAILS } from './js/config.js';
     import { applyCachedTheme } from './js/theme.js';
+    import { buildAmbient, sticker } from './js/fx.js';
     applyCachedTheme();
+    buildAmbient();
 
     // Sudah pernah login di perangkat ini → langsung masuk
     const { data: { session } } = await sb.auth.getSession();
@@ -72,7 +75,8 @@
       btn.disabled = true; btn.textContent = 'Memproses…'; err.hidden = true;
       try {
         await login(ROLE_EMAILS[role], form.password.value);
-        location.replace('app.html');
+        sticker('👋 Hai, ' + role + '!');
+        setTimeout(() => location.replace('app.html'), 700);
       } catch (ex) {
         err.textContent = ex.message === 'Invalid login credentials' ? 'Password salah' : ex.message;
         err.hidden = false;

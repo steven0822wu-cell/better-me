@@ -3,6 +3,7 @@ import { state } from '../state.js';
 import { THEMES, applyTheme } from '../theme.js';
 import { logout } from '../auth.js';
 import { toast } from '../ui.js';
+import { fxEnabled, setFx, sticker } from '../fx.js';
 
 // Pengaturan selalu milik user login sendiri (tidak terpengaruh mode pantau)
 export default {
@@ -27,6 +28,14 @@ export default {
       </section>
 
       <section class="card">
+        <h2>Animasi & stiker</h2>
+        <label class="switch">
+          <span>Efek animasi, stiker & partikel latar<br><span class="muted small">Matikan kalau HP terasa berat</span></span>
+          <input type="checkbox" id="fx-toggle" ${fxEnabled() ? 'checked' : ''}>
+        </label>
+      </section>
+
+      <section class="card">
         <h2>Tampilan mata uang</h2>
         <div class="seg">
           ${['IDR', 'USD'].map(c => `
@@ -44,6 +53,8 @@ export default {
     el.querySelectorAll('[data-theme-id]').forEach(b => b.onclick = async () => {
       const id = b.dataset.themeId;
       applyTheme(id);
+      const r = b.getBoundingClientRect();
+      setTimeout(() => sticker(null, r.left + r.width / 2, r.top), 50);
       await save({ theme: id });
       el.querySelectorAll('.theme-opt').forEach(x => x.classList.toggle('active', x === b));
     });
@@ -52,6 +63,11 @@ export default {
       await save({ currency_view: b.dataset.cur });
       el.querySelectorAll('[data-cur]').forEach(x => x.classList.toggle('active', x === b));
     });
+
+    el.querySelector('#fx-toggle').onchange = e => {
+      setFx(e.target.checked);
+      if (e.target.checked) sticker('✨ ON');
+    };
 
     el.querySelector('#btn-logout').onclick = logout;
   }
