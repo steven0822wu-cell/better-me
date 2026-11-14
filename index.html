@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="midnight">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115">
+  <title>Better Me</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow:wght@400;600&family=Cormorant+Garamond:wght@500;700&family=EB+Garamond:wght@400;600&family=Inter:wght@400;600;700&family=Noto+Serif+TC:wght@400;700&family=Nunito:wght@400;700&family=Orbitron:wght@600;800&family=Space+Grotesk:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="css/base.css">
+</head>
+<body class="cover-page">
+  <main class="cover">
+    <div class="brand cover-brand"><span class="brand-mark">BM</span><span class="brand-text">Better Me</span></div>
+    <p class="muted cover-sub">Siapa yang mau jadi lebih baik hari ini?</p>
+
+    <div class="role-grid" id="roles">
+      <button class="role-card" data-role="Steve" data-theme="supercar">
+        <span class="role-avatar">S</span>
+        <span class="role-name">Steve</span>
+      </button>
+      <button class="role-card" data-role="Pelaa" data-theme="oldmoney">
+        <span class="role-avatar">P</span>
+        <span class="role-name">Pelaa</span>
+      </button>
+    </div>
+
+    <form class="card pw-card" id="pw-form" hidden>
+      <p class="pw-title">Masuk sebagai <b id="pw-role"></b></p>
+      <input type="password" name="password" placeholder="Password" required autocomplete="current-password">
+      <input type="text" name="username" autocomplete="username" hidden>
+      <button class="btn btn-block" type="submit">Masuk</button>
+      <button class="btn btn-ghost btn-block" type="button" id="pw-back">← Ganti role</button>
+      <p class="error" id="login-error" hidden></p>
+    </form>
+  </main>
+
+  <script type="module">
+    import { sb } from './js/supabase.js';
+    import { login } from './js/auth.js';
+    import { ROLE_EMAILS } from './js/config.js';
+    import { applyCachedTheme } from './js/theme.js';
+    applyCachedTheme();
+
+    // Sudah pernah login di perangkat ini → langsung masuk
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) location.replace('app.html');
+
+    const roles = document.getElementById('roles');
+    const form = document.getElementById('pw-form');
+    const err = document.getElementById('login-error');
+    let role = null;
+
+    roles.querySelectorAll('.role-card').forEach(card => card.onclick = () => {
+      role = card.dataset.role;
+      document.getElementById('pw-role').textContent = role;
+      form.username.value = ROLE_EMAILS[role];
+      roles.hidden = true; form.hidden = false; err.hidden = true;
+      form.password.value = '';
+      form.password.focus();
+    });
+
+    document.getElementById('pw-back').onclick = () => {
+      form.hidden = true; roles.hidden = false;
+    };
+
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const btn = form.querySelector('button[type=submit]');
+      btn.disabled = true; btn.textContent = 'Memproses…'; err.hidden = true;
+      try {
+        await login(ROLE_EMAILS[role], form.password.value);
+        location.replace('app.html');
+      } catch (ex) {
+        err.textContent = ex.message === 'Invalid login credentials' ? 'Password salah' : ex.message;
+        err.hidden = false;
+        btn.disabled = false; btn.textContent = 'Masuk';
+      }
+    };
+  </script>
+</body>
+</html>

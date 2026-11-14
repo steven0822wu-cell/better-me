@@ -1,0 +1,100 @@
+/* =========================================================
+   7 TEMA — semua berbasis CSS variables.
+   Tambah tema baru: copy satu blok, ganti nilainya,
+   lalu daftarkan di js/theme.js & constraint profiles.theme
+   ========================================================= */
+
+/* 🌙 Midnight Minimal (default) */
+[data-theme="midnight"] {
+  --bg: #0f1115; --surface: #171a21; --surface-2: #1f232c; --border: #2a2f3a;
+  --text: #e8eaf0; --muted: #8b93a7; --primary: #7c9cff; --primary-text: #0f1115;
+  --accent: #5eead4; --danger: #f87171; --success: #4ade80;
+  --font-head: 'Inter', system-ui, sans-serif; --font-body: 'Inter', system-ui, sans-serif;
+  --head-weight: 700; --head-transform: none; --head-spacing: -0.02em;
+  --radius: 14px; --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.25);
+  --bg-image: none;
+}
+
+/* 🦸 Hero — merah & emas ala komik */
+[data-theme="hero"] {
+  --bg: #12131c; --surface: #1c1e2b; --surface-2: #262938; --border: #f5c518;
+  --text: #fffaf0; --muted: #b9b4c7; --primary: #e62429; --primary-text: #fff;
+  --accent: #f5c518; --danger: #ff5a5f; --success: #3ddc84;
+  --font-head: 'Bangers', 'Impact', sans-serif; --font-body: 'Barlow', system-ui, sans-serif;
+  --head-weight: 400; --head-transform: uppercase; --head-spacing: 0.04em;
+  --radius: 6px; --shadow: 4px 4px 0 #000;
+  --bg-image: radial-gradient(circle, rgba(245,197,24,.07) 1.2px, transparent 1.4px);
+  --bg-size: 14px 14px;
+}
+[data-theme="hero"] .card { border-width: 2px; }
+[data-theme="hero"] .btn { box-shadow: 3px 3px 0 #000; }
+[data-theme="hero"] .btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #000; }
+
+/* 🎩 Old Money — krem, hijau tua, emas */
+[data-theme="oldmoney"] {
+  --bg: #f4efe4; --surface: #fbf8f1; --surface-2: #efe8d8; --border: #d9cdb3;
+  --text: #1f2a24; --muted: #6e6a5e; --primary: #1e3d2f; --primary-text: #f4efe4;
+  --accent: #b08d57; --danger: #8b2e2e; --success: #2f5d3a;
+  --font-head: 'Cormorant Garamond', Georgia, serif; --font-body: 'EB Garamond', Georgia, serif;
+  --head-weight: 700; --head-transform: none; --head-spacing: 0.01em;
+  --radius: 4px; --shadow: 0 1px 2px rgba(31,42,36,.08);
+  --bg-image: none;
+}
+[data-theme="oldmoney"] .card { border-top: 3px double var(--accent); }
+[data-theme="oldmoney"] .eyebrow { letter-spacing: .25em; }
+
+/* 🏎️ Supercar — carbon & racing */
+[data-theme="supercar"] {
+  --bg: #0a0a0a; --surface: #141414; --surface-2: #1e1e1e; --border: #2b2b2b;
+  --text: #f2f2f2; --muted: #8a8a8a; --primary: #d40000; --primary-text: #fff;
+  --accent: #ffcc00; --danger: #ff3b30; --success: #34c759;
+  --font-head: 'Orbitron', 'Arial Black', sans-serif; --font-body: 'Barlow', system-ui, sans-serif;
+  --head-weight: 800; --head-transform: uppercase; --head-spacing: 0.06em;
+  --radius: 2px; --shadow: 0 0 0 1px #000, 0 10px 30px rgba(0,0,0,.6);
+  --bg-image:
+    linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%),
+    linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%);
+  --bg-size: 6px 6px; --bg-pos: 0 0, 3px 3px;
+}
+[data-theme="supercar"] .card { border-left: 3px solid var(--primary); }
+[data-theme="supercar"] .tile-value { font-family: var(--font-head); color: var(--accent); }
+
+/* 🖌️ Zen Ink 水墨 — kertas, tinta, stempel */
+[data-theme="zen"] {
+  --bg: #f6f3ec; --surface: #fffdf8; --surface-2: #efeae0; --border: #d8d2c4;
+  --text: #1b1b1b; --muted: #77726a; --primary: #1b1b1b; --primary-text: #f6f3ec;
+  --accent: #b7282e; --danger: #b7282e; --success: #4a6b4f;
+  --font-head: 'Noto Serif TC', serif; --font-body: 'Noto Serif TC', Georgia, serif;
+  --head-weight: 700; --head-transform: none; --head-spacing: 0.08em;
+  --radius: 2px; --shadow: none;
+  --bg-image: radial-gradient(ellipse at 80% 0%, rgba(0,0,0,.05), transparent 60%);
+}
+[data-theme="zen"] .brand-mark { background: var(--accent); color: #fff; border-radius: 3px; }
+[data-theme="zen"] .card { border: 1px solid var(--border); }
+
+/* 🌃 Cyberpunk Neon */
+[data-theme="cyber"] {
+  --bg: #0b0716; --surface: #140d26; --surface-2: #1d1436; --border: #3b2a6b;
+  --text: #ece6ff; --muted: #9d8fc7; --primary: #ff2bd6; --primary-text: #0b0716;
+  --accent: #00f0ff; --danger: #ff4d6d; --success: #39ff88;
+  --font-head: 'Space Grotesk', system-ui, sans-serif; --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --head-weight: 700; --head-transform: uppercase; --head-spacing: 0.05em;
+  --radius: 10px; --shadow: 0 0 0 1px rgba(0,240,255,.15), 0 0 24px rgba(255,43,214,.12);
+  --bg-image:
+    linear-gradient(rgba(0,240,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,240,255,.05) 1px, transparent 1px);
+  --bg-size: 32px 32px;
+}
+[data-theme="cyber"] h1 { text-shadow: 0 0 18px rgba(255,43,214,.55); }
+[data-theme="cyber"] .btn { box-shadow: 0 0 16px rgba(255,43,214,.45); }
+
+/* 🌲 Forest Calm */
+[data-theme="forest"] {
+  --bg: #eef2ea; --surface: #fbfcf8; --surface-2: #e3eadc; --border: #cbd6c0;
+  --text: #22301f; --muted: #66735f; --primary: #3f6b3a; --primary-text: #fff;
+  --accent: #c0843d; --danger: #b54a3c; --success: #3f6b3a;
+  --font-head: 'Nunito', system-ui, sans-serif; --font-body: 'Nunito', system-ui, sans-serif;
+  --head-weight: 700; --head-transform: none; --head-spacing: 0;
+  --radius: 18px; --shadow: 0 4px 14px rgba(34,48,31,.08);
+  --bg-image: none;
+}
