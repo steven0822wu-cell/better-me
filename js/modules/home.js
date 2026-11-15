@@ -1,5 +1,7 @@
 import { state } from '../state.js';
 import { persona, celebrate, sticker } from '../fx.js';
+import { sb } from '../supabase.js';
+import { today } from '../date.js';
 
 const SAPAAN = () => {
   const h = new Date().getHours();
@@ -64,6 +66,8 @@ export default {
         ].map(([i, l, r], idx) => tile(i, l, '—', r, idx)).join('')}
       </div>`;
 
+    loadStats(el);
+
     // Tap maskot → stiker + confetti
     const m = el.querySelector('.mascot');
     m.onclick = e => {
@@ -77,9 +81,31 @@ export default {
 
 function tile(icon, label, value, route, i) {
   return `
-    <a class="card tile" href="#/${route}" style="--i:${i}">
+    <a class="card tile" href="#/${route}" style="--i:${i}" data-tile="${route}">
       <span class="tile-icon">${icon}</span>
       <span class="tile-label">${label}</span>
       <span class="tile-value">${value}</span>
     </a>`;
+}
+
+// Isi angka di kartu dari data asli (modul yang sudah jadi)
+async function loadStats(el) {
+  const uid = state.viewing.id;
+  const { data } = await sb.from('todos').select('done').eq('user_id', uid).eq('tanggal', today());
+  if (data) {
+    const done = data.filter(t => t.done).length;
+    setTile(el, 'todo', data.length ? `${done} / ${data.length}` : 'Kosong',
+      data.length ? Math.round(done / data.length * 100) : null);
+  }
+}
+
+function setTile(el, route, value, pct) {
+  const tile = el.querySelector(`[data-tile="${route}"]`);
+  if (!tile) return;
+  tile.querySelector('.tile-value').textContent = value;
+  if (pct != null) {
+    let bar = tile.querySelector('.progress');
+    if (!bar) { bar = document.createElement('div'); bar.className = 'progress progress-sm'; bar.innerHTML = '<i></i>'; tile.appendChild(bar); }
+    requestAnimationFrame(() => bar.firstChild.style.width = pct + '%');
+  }
 }
