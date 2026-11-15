@@ -54,7 +54,9 @@ export default {
       </form>
 
       <section id="td-overdue"></section>
-      <ul class="todo-list" id="td-list"></ul>`;
+      <ul class="todo-list" id="td-list"></ul>
+
+      <div id="td-grid"></div>`;
 
     el.querySelector('#td-prev').onclick = () => go(addDays(cur, -1));
     el.querySelector('#td-next').onclick = () => go(addDays(cur, 1));
@@ -63,7 +65,10 @@ export default {
     el.querySelector('#td-form').onsubmit = onAdd;
     el.querySelector('#td-list').onclick = onListClick;
     el.querySelector('#td-overdue').onclick = onOverdueClick;
-    sched = createSchedule(el.querySelector('#td-sched'), { onChange: () => drawWeek() });
+    sched = createSchedule(el.querySelector('#td-sched'), {
+      gridContainer: el.querySelector('#td-grid'),
+      onChange: () => drawWeek()
+    });
 
     await load();
   }

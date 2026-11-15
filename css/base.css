@@ -391,3 +391,48 @@ body.modal-open { overflow: hidden; }
   .tl-chip { display: none; }
   .tl-item.live .tl-time::after { content: '● LIVE'; font-size: .6rem; color: var(--danger); font-weight: 800; }
 }
+
+/* ---------- Tabel jadwal mingguan ---------- */
+.tt { margin-top: 24px; padding: 16px 18px; }
+.tt-scroll { overflow-x: auto; margin: 10px -4px 0; padding: 0 4px 4px; }
+.tt-grid { display: grid; grid-template-columns: 56px repeat(7, minmax(92px, 1fr)); min-width: 720px; }
+.tt-corner { position: sticky; left: 0; z-index: 3; background: var(--surface); }
+.tt-head { display: flex; flex-direction: column; align-items: center; padding: 6px 0 8px; border-bottom: 1px solid var(--border); }
+.tt-head span { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.tt-head b { font: var(--head-weight) 1.05rem var(--font-head); }
+.tt-head.is-sel b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--primary); color: var(--primary-text); }
+.tt-head.is-today span { color: var(--accent); font-weight: 700; }
+.tt-times { position: sticky; left: 0; z-index: 2; background: var(--surface); display: grid; grid-template-rows: repeat(var(--rows), var(--hour)); }
+.tt-times span { font-size: .7rem; color: var(--muted); transform: translateY(-.55em); padding-right: 8px; text-align: right; }
+.tt-times span:first-child { transform: none; }
+.tt-col {
+  position: relative; height: calc(var(--rows) * var(--hour)); border-left: 1px solid var(--border);
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour) - 1px), var(--border) calc(var(--hour) - 1px), var(--border) var(--hour)),
+                    repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour) / 2 - 1px), color-mix(in srgb, var(--border) 45%, transparent) calc(var(--hour) / 2 - 1px), color-mix(in srgb, var(--border) 45%, transparent) calc(var(--hour) / 2));
+}
+.tt-col:last-child { border-right: 1px solid var(--border); }
+.tt-col.is-today { background-color: color-mix(in srgb, var(--accent) 6%, transparent); }
+.tt-block {
+  position: absolute; display: flex; flex-direction: column; gap: 1px; align-items: flex-start; text-align: left; overflow: hidden;
+  padding: 5px 7px; border: 0; border-left: 3px solid var(--c); border-radius: 6px; cursor: pointer;
+  background: color-mix(in srgb, var(--c) 22%, var(--surface)); color: var(--text); font-family: var(--font-body);
+  box-shadow: 0 1px 3px rgba(0,0,0,.15); transition: transform .15s, box-shadow .15s, filter .15s;
+}
+.tt-block:hover:not(:disabled) { transform: scale(1.03); z-index: 1; box-shadow: 0 6px 16px rgba(0,0,0,.25); filter: brightness(1.08); }
+.tt-block:disabled { cursor: default; }
+.tt-block b { font-size: .74rem; line-height: 1.2; font-weight: 700; text-transform: none; letter-spacing: 0; overflow-wrap: break-word; word-break: normal; hyphens: auto; }
+.tt-block.narrow { padding: 4px 5px; }
+.tt-block.narrow b { font-size: .66rem; }
+.tt-block.narrow small { font-size: .6rem; }
+.tt-block small { font-size: .66rem; opacity: .8; }
+.tt-block.short { flex-direction: row; align-items: center; gap: 6px; padding: 2px 6px; }
+.tt-block.short small, .tt-block .tt-loc { display: none; }
+.tt-block:not(.short) .tt-loc { display: block; }
+.tt-now { position: absolute; left: 0; right: 0; height: 2px; background: var(--danger); z-index: 2; pointer-events: none; }
+.tt-now::before { content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
+.tt-hint { margin: 8px 0 0; }
+.danger-text { color: var(--danger) !important; }
+@media (max-width: 860px) {
+  .sched-head h2 .small { display: block; margin-top: 2px; }
+  .tt-grid { grid-template-columns: 48px repeat(7, minmax(104px, 1fr)); min-width: 780px; }
+}
