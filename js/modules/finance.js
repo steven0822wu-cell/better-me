@@ -6,7 +6,7 @@ import { fetchAll } from '../db.js';
 import { money } from '../currency.js';
 import { today, relLabel, fmtShort, parse, ymd } from '../date.js';
 
-const ACC_TYPES = { cash: ['💵', 'Cash'], bank: ['🏦', 'Bank'], ewallet: ['📱', 'E-wallet'], lainnya: ['💳', 'Lainnya'] };
+export const ACC_TYPES = { cash: ['💵', 'Cash'], bank: ['🏦', 'Bank'], ewallet: ['📱', 'E-wallet'], lainnya: ['💳', 'Lainnya'] };
 const CAT_ICONS = ['🍜', '☕', '🛒', '🚗', '⛽', '🏠', '💡', '📱', '🎬', '🎮', '👕', '💊', '📚', '🎁', '✈️', '🐶', '💇', '🧾', '💼', '🏫', '📈', '💰', '🎉', '🔧'];
 const DEFAULT_CATS = [
   ['🍜', 'Makan & Minum', 'out'], ['🛒', 'Belanja Harian', 'out'], ['🚗', 'Transportasi', 'out'],
@@ -61,7 +61,7 @@ export function parseAmount(s) {
   if (mult > 1) return Math.round(parseFloat(s.replace(/\./g, '').replace(',', '.')) * mult) || 0;
   return Number(s.replace(/[^\d]/g, '')) || 0;
 }
-const fmtInput = n => n ? n.toLocaleString('id-ID') : '';
+export const fmtInput = n => n ? n.toLocaleString('id-ID') : '';
 
 // ---------- Halaman ----------
 export default {

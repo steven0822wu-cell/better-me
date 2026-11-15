@@ -735,3 +735,43 @@ body.read-only .txn { cursor: default; }
   .iv-price { display: none; }
   #iv-refresh { padding: 8px 10px; font-size: .8rem; }
 }
+
+/* =========================================================
+   WISHLIST
+   ========================================================= */
+.ws-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.ws-sort { flex-direction: row; align-items: center; gap: 8px; margin: 0; font-size: .85rem; }
+.ws-sort select { padding: 7px 10px; }
+.ws-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.ws-empty { grid-column: 1 / -1; }
+.ws-card { padding: 0; margin: 0; overflow: hidden; display: flex; flex-direction: column;
+  animation: fx-up .45s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i) * 50ms); transition: transform .2s, box-shadow .2s; }
+.ws-card:hover { transform: translateY(-3px); }
+.ws-card.full { border-color: var(--success); box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 40%, transparent), var(--shadow); }
+.ws-card.bought { opacity: .8; }
+.ws-img { position: relative; aspect-ratio: 16 / 10; background: var(--surface-2); overflow: hidden; display: grid; place-items: center; }
+.ws-img img { width: 100%; height: 100%; object-fit: cover; grid-area: 1/1; }
+.ws-img.noimg img { display: none; }
+.ws-ph { grid-area: 1/1; display: none; font: var(--head-weight) 3.4rem var(--font-head); color: var(--primary-text);
+  width: 100%; height: 100%; place-items: center;
+  background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--accent) 70%, var(--primary))); }
+.ws-img.noimg .ws-ph { display: grid; }
+.ws-prio { position: absolute; top: 10px; left: 10px; padding: 3px 10px; border-radius: 999px; font-size: .72rem; font-weight: 700;
+  background: rgba(0,0,0,.6); color: #fff; backdrop-filter: blur(4px); }
+.ws-prio.p1 { background: var(--danger); }
+.ws-stamp { position: absolute; bottom: 10px; right: 10px; padding: 4px 10px; border-radius: 6px; font-size: .72rem; font-weight: 800;
+  letter-spacing: .05em; background: var(--success); color: #fff; transform: rotate(-4deg); box-shadow: 0 4px 10px rgba(0,0,0,.25); }
+.ws-stamp.ready { animation: fx-blink 1.6s ease-in-out infinite; }
+.ws-body { padding: 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.ws-name { border: 0; background: none; padding: 0; text-align: left; color: var(--text); font: 700 1.02rem var(--font-body); cursor: pointer; overflow-wrap: anywhere; }
+.ws-name:disabled { cursor: default; }
+.ws-name:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 3px; }
+.ws-price { font: var(--head-weight) 1.2rem var(--font-head); }
+.ws-meta { display: flex; justify-content: space-between; font-size: .8rem; }
+.ws-link { font-size: .8rem; color: var(--primary); text-decoration: underline; text-underline-offset: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 6px; }
+.ws-actions .btn { flex: 1; }
+.ws-preview { margin: -6px 0 14px; }
+.ws-preview img { max-width: 100%; max-height: 160px; border-radius: var(--radius); object-fit: cover; }
+@media (max-width: 860px) { .ws-grid { grid-template-columns: 1fr 1fr; gap: 10px; } .ws-body { padding: 10px; } .ws-actions { flex-direction: column; } }
+@media (max-width: 420px) { .ws-grid { grid-template-columns: 1fr; } .ws-img { aspect-ratio: 16 / 7; } .ws-actions { flex-direction: row; } }

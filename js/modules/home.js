@@ -106,6 +106,7 @@ async function loadStats(el) {
   loadWorkout(el, uid);
   loadFinance(el, uid);
   loadInvest(el, uid);
+  loadWishlist(el, uid);
   const { data } = await sb.from('todos').select('done').eq('user_id', uid).eq('tanggal', today());
   if (data) {
     const done = data.filter(t => t.done).length;
@@ -205,4 +206,16 @@ async function loadInvest(el, uid) {
   const pct = cost ? (val - cost) / cost * 100 : 0;
   const lbl = el.querySelector('[data-tile="invest"] .tile-label');
   if (lbl && cost) lbl.innerHTML = `Portofolio · <span class="${pct >= 0 ? 'amt-in' : 'amt-out'}">${pct >= 0 ? '+' : ''}${pct.toFixed(1).replace('.', ',')}%</span>`;
+}
+
+async function loadWishlist(el, uid) {
+  const { data } = await sb.from('wishlist').select('harga_idr,dana_terkumpul,status').eq('user_id', uid).neq('status', 'terbeli');
+  if (!data) return;
+  if (!data.length) return setTile(el, 'wishlist', 'Kosong', null);
+  const total = data.reduce((s, w) => s + Number(w.harga_idr), 0);
+  const saved = data.reduce((s, w) => s + Math.min(Number(w.dana_terkumpul), Number(w.harga_idr)), 0);
+  const ready = data.filter(w => Number(w.harga_idr) && Number(w.dana_terkumpul) >= Number(w.harga_idr)).length;
+  setTile(el, 'wishlist', `${data.length} impian`, total ? Math.round(saved / total * 100) : 0);
+  const lbl = el.querySelector('[data-tile="wishlist"] .tile-label');
+  if (lbl) lbl.textContent = ready ? `Wishlist · 🎉 ${ready} siap dibeli` : `Wishlist · ${total ? Math.round(saved / total * 100) : 0}% terkumpul`;
 }

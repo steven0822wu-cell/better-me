@@ -11,6 +11,7 @@ import habit from './modules/habit.js';
 import gym from './modules/gym.js';
 import finance from './modules/finance.js';
 import invest from './modules/invest.js';
+import wishlist from './modules/wishlist.js';
 import { placeholder } from './modules/placeholder.js';
 
 applyCachedTheme();
@@ -28,7 +29,7 @@ export const NAV = [
 ];
 
 // Modul yang sudah jadi; sisanya placeholder sampai fasenya
-const MODULES = { home, settings, todo, habit, gym, finance, invest };
+const MODULES = { home, settings, todo, habit, gym, finance, invest, wishlist };
 
 const $ = s => document.querySelector(s);
 
