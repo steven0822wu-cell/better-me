@@ -36,3 +36,32 @@ export function toast(msg, type = 'ok', opts = {}) {
 
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// modal({ title, html, onClose }) → { el, body, close }
+export function modal({ title, html = '', onClose } = {}) {
+  const back = document.createElement('div');
+  back.className = 'modal-back';
+  back.innerHTML = `
+    <div class="modal card" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+      <header class="modal-head">
+        <h2>${esc(title)}</h2>
+        <button class="icon-btn" data-close aria-label="Tutup">✕</button>
+      </header>
+      <div class="modal-body">${html}</div>
+    </div>`;
+  document.body.appendChild(back);
+  document.body.classList.add('modal-open');
+
+  const close = () => {
+    back.classList.add('out');
+    document.body.classList.remove('modal-open');
+    document.removeEventListener('keydown', onKey);
+    setTimeout(() => back.remove(), 200);
+    onClose?.();
+  };
+  const onKey = e => e.key === 'Escape' && close();
+  document.addEventListener('keydown', onKey);
+  back.addEventListener('click', e => { if (e.target === back || e.target.closest('[data-close]')) close(); });
+
+  return { el: back, body: back.querySelector('.modal-body'), close };
+}

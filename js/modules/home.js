@@ -2,6 +2,7 @@ import { state } from '../state.js';
 import { persona, celebrate, sticker } from '../fx.js';
 import { sb } from '../supabase.js';
 import { today } from '../date.js';
+import { forDate, nextOf, hhmm, statusOf } from './todo-schedule.js';
 
 const SAPAAN = () => {
   const h = new Date().getHours();
@@ -52,6 +53,7 @@ export default {
         <h1>${judul}</h1>
         <p class="muted">Satu langkah kecil tiap hari → better me.</p>
         <div class="quote"><span class="quote-mark">❝</span><span>${quoteOfDay()}</span></div>
+        <a class="next-sched" id="next-sched" href="#/todo" hidden></a>
       </section>
 
       <div class="grid">
@@ -91,6 +93,7 @@ function tile(icon, label, value, route, i) {
 // Isi angka di kartu dari data asli (modul yang sudah jadi)
 async function loadStats(el) {
   const uid = state.viewing.id;
+  loadNextSchedule(el, uid);
   const { data } = await sb.from('todos').select('done').eq('user_id', uid).eq('tanggal', today());
   if (data) {
     const done = data.filter(t => t.done).length;
@@ -108,4 +111,22 @@ function setTile(el, route, value, pct) {
     if (!bar) { bar = document.createElement('div'); bar.className = 'progress progress-sm'; bar.innerHTML = '<i></i>'; tile.appendChild(bar); }
     requestAnimationFrame(() => bar.firstChild.style.width = pct + '%');
   }
+}
+
+async function loadNextSchedule(el, uid) {
+  const { data } = await sb.from('schedules').select('*').eq('user_id', uid);
+  if (!data) return;
+  const t = today();
+  const items = forDate(data, t);
+  const live = items.find(s => statusOf(s, t) === 'live');
+  const next = nextOf(items, t);
+  const box = el.querySelector('#next-sched');
+  if (!box || (!live && !next)) return;
+  const s = live || next;
+  box.innerHTML = `<span class="ns-icon">${s.icon}</span>
+    <span><small>${live ? '● Sedang berlangsung' : 'Jadwal berikutnya'}</small>
+    <b>${hhmm(s.jam_mulai)} · ${s.judul.replace(/[<>&]/g, '')}</b></span>`;
+  box.classList.toggle('live', !!live);
+  box.style.setProperty('--c', s.warna);
+  box.hidden = false;
 }

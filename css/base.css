@@ -195,7 +195,7 @@ body.loading .loader { display: grid; place-items: center; position: fixed; inse
    ========================================================= */
 .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
 .page-head .page-title { margin: 0; }
-.btn-sm { padding: 6px 12px; font-size: .82rem; }
+.btn-sm { padding: 6px 12px; font-size: .82rem; white-space: nowrap; }
 .icon-btn {
   display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: calc(var(--radius) * .6);
   border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-size: 1rem;
@@ -302,4 +302,92 @@ body.loading .loader { display: grid; place-items: center; position: fixed; inse
   .todo-title { flex: 1 1 calc(100% - 44px); }
   .todo-pri { margin-left: 40px; }
   .todo-actions { margin-left: auto; }
+}
+
+/* ---------- Jadwal rutin (di To-do) ---------- */
+.day { position: relative; }
+.day.has-sched::after { content: ''; position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.day.active.has-sched::after { background: var(--primary-text); }
+
+.sched { padding: 16px 18px; }
+.sched-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
+.sched-head h2 { margin: 0; }
+.sched-empty { margin: 6px 0 0; }
+.timeline { list-style: none; margin: 8px 0 0; padding: 0; position: relative; }
+.tl-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; position: relative; }
+.tl-item + .tl-item { border-top: 1px dashed var(--border); }
+.tl-time { width: 48px; flex-shrink: 0; font: var(--head-weight) .95rem var(--font-head); display: flex; flex-direction: column; line-height: 1.15; }
+.tl-time small { font: 400 .72rem var(--font-body); color: var(--muted); }
+.tl-dot { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%;
+  background: color-mix(in srgb, var(--c) 20%, var(--surface)); border: 2px solid var(--c); font-size: 1rem; }
+.tl-body { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-wrap: anywhere; }
+.tl-chip { font-size: .7rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.tl-chip.live { background: var(--danger); color: #fff; animation: fx-blink 1.6s ease-in-out infinite; }
+.tl-chip.next { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text); }
+@keyframes fx-blink { 50% { opacity: .55; } }
+.tl-item.live .tl-dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 30%, transparent); }
+.tl-item.past:not(.done) { opacity: .6; }
+.tl-item.done .tl-body b { text-decoration: line-through; opacity: .6; }
+.tl-item.done .todo-check { background: var(--success); border-color: var(--success); color: #fff; }
+.todo-check.sm { width: 26px; height: 26px; }
+
+/* Jadwal berikutnya di Home */
+.next-sched { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 10px 14px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--c, var(--primary)); }
+.next-sched span:last-child { display: flex; flex-direction: column; }
+.next-sched small { color: var(--muted); font-size: .75rem; }
+.next-sched.live small { color: var(--danger); font-weight: 700; }
+.ns-icon { font-size: 1.5rem; }
+
+/* ---------- Modal ---------- */
+body.modal-open { overflow: hidden; }
+.modal-back { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 16px;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(4px); animation: fx-fade .2s ease; }
+.modal-back.out { opacity: 0; transition: opacity .2s; }
+.modal { width: 100%; max-width: 620px; max-height: calc(100vh - 32px); display: flex; flex-direction: column; padding: 0; margin: 0;
+  animation: fx-up .25s cubic-bezier(.2,.8,.2,1); }
+.modal-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.modal-head h2 { margin: 0; }
+.modal-body { padding: 18px 20px; overflow-y: auto; }
+@keyframes fx-fade { from { opacity: 0; } }
+
+/* ---------- Form umum ---------- */
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.row > label { flex: 1 1 120px; }
+.row > label.grow { flex: 3 1 220px; }
+.field { margin-bottom: 14px; }
+.field-label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips.quick { margin-top: 6px; gap: 14px; }
+.chip { margin: 0; flex-direction: row; cursor: pointer; }
+.chip input { position: absolute; opacity: 0; pointer-events: none; }
+.chip span { display: inline-grid; place-items: center; min-width: 44px; height: 36px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font-weight: 600; font-size: .85rem; transition: .15s; }
+.chip input:checked + span { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+.chip input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
+.chips.icons .chip span { min-width: 40px; padding: 0; font-size: 1.1rem; }
+.chips.icons .chip input:checked + span { background: color-mix(in srgb, var(--primary) 25%, var(--surface-2)); }
+.chip.color span { min-width: 32px; width: 32px; height: 32px; padding: 0; border: 3px solid transparent; }
+.chip.color input:checked + span { border-color: var(--text); box-shadow: 0 0 0 2px var(--surface); }
+.link-btn { border: 0; background: none; padding: 0; color: var(--primary); font: 600 .8rem var(--font-body); cursor: pointer; text-decoration: underline; }
+.form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.icon-btn.danger { width: auto; padding: 0 10px; background: var(--danger); color: #fff; border-color: var(--danger); font-size: .78rem; font-weight: 700; }
+
+.sched-list-title { margin: 22px 0 8px; font-size: 1rem; }
+.sched-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sched-list li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: calc(var(--radius) * .8);
+  background: var(--surface-2); border-left: 4px solid var(--c, var(--border)); }
+.sched-list li.paused { opacity: .5; }
+.sched-list li.editing { outline: 2px solid var(--primary); }
+.sl-icon { font-size: 1.3rem; }
+.sl-body { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-wrap: anywhere; }
+.sl-actions { display: flex; gap: 4px; }
+.sl-actions .icon-btn { width: 30px; height: 30px; font-size: .85rem; }
+.sl-empty { background: none !important; }
+
+@media (max-width: 860px) {
+  .modal-back { place-items: end center; padding: 0; }
+  .modal { max-width: none; max-height: 92vh; border-radius: var(--radius) var(--radius) 0 0; }
+  .tl-chip { display: none; }
+  .tl-item.live .tl-time::after { content: '● LIVE'; font-size: .6rem; color: var(--danger); font-weight: 800; }
 }

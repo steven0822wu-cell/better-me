@@ -2,6 +2,7 @@ import { sb } from '../supabase.js';
 import { state, assertCanEdit } from '../state.js';
 import { toast, esc } from '../ui.js';
 import { sticker, celebrate, persona } from '../fx.js';
+import { createSchedule } from './todo-schedule.js';
 import { today, addDays, weekStart, relLabel, fmtLong, fmtShort, dayName, parse } from '../date.js';
 
 const PRI = {
@@ -11,7 +12,7 @@ const PRI = {
 };
 
 let cur = today();      // tanggal yang sedang dilihat (bertahan antar navigasi)
-let el, items = [], overdue = [], week = [];
+let el, sched, items = [], overdue = [], week = [];
 
 export default {
   async render(root) {
@@ -40,6 +41,8 @@ export default {
         <div class="progress"><i id="td-bar"></i></div>
       </section>
 
+      <div id="td-sched"></div>
+
       <form class="card td-add" id="td-form" data-edit autocomplete="off">
         <input name="judul" placeholder="Tambah tugas… (Enter)" maxlength="200" required>
         <div class="pri-pick" role="radiogroup" aria-label="Prioritas">
@@ -60,6 +63,7 @@ export default {
     el.querySelector('#td-form').onsubmit = onAdd;
     el.querySelector('#td-list').onclick = onListClick;
     el.querySelector('#td-overdue').onclick = onOverdueClick;
+    sched = createSchedule(el.querySelector('#td-sched'), { onChange: () => drawWeek() });
 
     await load();
   }
@@ -81,7 +85,8 @@ async function load() {
           .order('tanggal').order('prioritas')
       : Promise.resolve({ data: [] }),
     sb.from('todos').select('tanggal,done').eq('user_id', uid)
-      .gte('tanggal', ws).lte('tanggal', addDays(ws, 6))
+      .gte('tanggal', ws).lte('tanggal', addDays(ws, 6)),
+    sched.load(cur)
   ]);
   if (a.error) return toast('Gagal memuat: ' + a.error.message, 'error');
 
@@ -145,8 +150,10 @@ function drawWeek() {
     const total = rows.length, done = rows.filter(r => r.done).length;
     const pct = total ? Math.round(done / total * 100) : 0;
     const st = !total ? 'none' : done === total ? 'full' : 'part';
+    const nSched = sched.countFor(d);
     return `
-      <button class="day ${d === cur ? 'active' : ''} ${d === t ? 'is-today' : ''}" data-day="${d}" style="--pct:${pct}">
+      <button class="day ${d === cur ? 'active' : ''} ${d === t ? 'is-today' : ''} ${nSched ? 'has-sched' : ''}" data-day="${d}"
+        style="--pct:${pct}" title="${total} tugas${nSched ? ` · ${nSched} jadwal rutin` : ''}">
         <span class="day-name">${dayName(d)}</span>
         <span class="day-num">${parse(d).getDate()}</span>
         <span class="day-dot ${st}">${st === 'full' ? '✓' : total ? `${done}/${total}` : ''}</span>
