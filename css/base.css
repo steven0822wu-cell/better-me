@@ -776,3 +776,28 @@ body.read-only .txn { cursor: default; }
 .ws-preview img { max-width: 100%; max-height: 160px; border-radius: var(--radius); object-fit: cover; }
 @media (max-width: 860px) { .ws-grid { grid-template-columns: 1fr 1fr; gap: 10px; } .ws-body { padding: 10px; } .ws-actions { flex-direction: column; } }
 @media (max-width: 420px) { .ws-grid { grid-template-columns: 1fr; } .ws-img { aspect-ratio: 16 / 7; } .ws-actions { flex-direction: row; } }
+
+/* =========================================================
+   NOTIFIKASI (Setting)
+   ========================================================= */
+.notif-device { padding: 12px 14px; border-radius: var(--radius); background: var(--surface-2); margin: 8px 0 14px; border-left: 4px solid var(--muted); }
+.notif-device p { margin: 0 0 8px; }
+.notif-device ol { margin: 0 0 8px; padding-left: 20px; }
+.notif-device.st-on { border-left-color: var(--success); }
+.notif-device.st-off { border-left-color: var(--accent); }
+.notif-device.st-denied, .notif-device.st-unsupported { border-left-color: var(--danger); }
+.notif-master { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.notif-group { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 18px 0 6px; }
+.notif-item { padding: 10px 0; border-bottom: 1px dashed var(--border); }
+.notif-item .switch { margin: 0; }
+.notif-item .switch > span { font-weight: 600; }
+.notif-opts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.notif-opts:empty { display: none; }
+.notif-opts label { flex-direction: row; align-items: center; gap: 8px; margin: 0; font-size: .82rem; font-weight: 500; }
+.notif-opts input, .notif-opts select { padding: 6px 8px; }
+.notif-item.off .notif-opts { display: none; }
+.notif-log { margin-top: 14px; }
+.notif-log summary { cursor: pointer; padding: 6px 0; }
+.notif-log ul { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.notif-log li { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); font-size: .88rem; }
+.hf-remind input { max-width: 160px; }

@@ -4,6 +4,7 @@ import { THEMES, applyTheme } from '../theme.js';
 import { logout } from '../auth.js';
 import { toast } from '../ui.js';
 import { fxEnabled, setFx, sticker } from '../fx.js';
+import { renderNotif } from './settings-notif.js';
 
 // Pengaturan selalu milik user login sendiri (tidak terpengaruh mode pantau)
 export default {
@@ -26,6 +27,8 @@ export default {
             </button>`).join('')}
         </div>
       </section>
+
+      <section class="card notif-card" id="notif-sec"></section>
 
       <section class="card">
         <h2>Animasi & stiker</h2>
@@ -70,6 +73,7 @@ export default {
     };
 
     el.querySelector('#btn-logout').onclick = logout;
+    renderNotif(el.querySelector('#notif-sec'));
   }
 };
 

@@ -204,6 +204,7 @@ function drawList() {
           <div class="hb-meta">
             <span class="hb-streak ${s ? 'on' : ''}">🔥 ${s} ${unit(h)}</span>
             <span class="muted">· ${freq}${metWeek ? ' ✓' : ''}</span>
+            ${h.jam_pengingat ? `<span class="muted">· 🔔 ${h.jam_pengingat.slice(0, 5)}</span>` : ''}
           </div>
           <div class="hb-week">
             ${DOW.map((n, i) => {
@@ -352,6 +353,8 @@ function openForm(h = null) {
             `<option value="${n}" ${(h?.target_per_minggu || 3) === n ? 'selected' : ''}>${n}×</option>`).join('')}</select> per minggu
         </div>
       </div>
+      <label class="hf-remind"><span>🔔 Jam pengingat <small class="muted">(opsional — notifikasi HP kalau belum dicentang)</small></span>
+        <input type="time" name="jam" value="${esc((h?.jam_pengingat || '').slice(0, 5))}"></label>
       <div class="field">
         <span class="field-label">Ikon</span>
         <div class="chips icons">${ICONS.map(ic => `<label class="chip"><input type="radio" name="icon" value="${ic}" ${(h?.icon || '✅') === ic ? 'checked' : ''}><span>${ic}</span></label>`).join('')}</div>
@@ -392,6 +395,8 @@ function openForm(h = null) {
       target_per_minggu: freq === 'harian' ? 7 : Number(f.target.value)
     };
     if (!h) row.urutan = habits.length;
+    // Kolom jam_pengingat baru ada setelah SQL notifikasi dijalankan — hanya dikirim kalau dipakai
+    if (f.jam.value || h?.jam_pengingat) row.jam_pengingat = f.jam.value || null;
     const q = h ? sb.from('habits').update(row).eq('id', h.id).select().single()
                 : sb.from('habits').insert(row).select().single();
     const { data, error } = await q;

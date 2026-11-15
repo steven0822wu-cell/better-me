@@ -4,6 +4,7 @@ import { applyTheme, applyCachedTheme } from './theme.js';
 import { getUsdIdr } from './currency.js';
 import { toast } from './ui.js';
 import { buildAmbient } from './fx.js';
+import { syncSubscription } from './push.js';
 import home from './modules/home.js';
 import settings from './modules/settings.js';
 import todo from './modules/todo.js';
@@ -55,6 +56,10 @@ async function init() {
   setViewing(state.me);
 
   window.addEventListener('hashchange', render);
+  syncSubscription();
+  navigator.serviceWorker?.addEventListener('message', e => {
+    if (e.data?.type === 'navigate' && e.data.url) location.href = e.data.url;
+  });
   document.body.classList.remove('loading');
 }
 
