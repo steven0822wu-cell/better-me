@@ -161,7 +161,7 @@ export function createSchedule(container, { gridContainer, onChange } = {}) {
           <div class="row">
             <label>Mulai<input type="time" name="jam_mulai" required></label>
             <label>Selesai<input type="time" name="jam_selesai"></label>
-            <label class="grow">Lokasi <span class="muted small">(opsional)</span><input name="lokasi" maxlength="80" placeholder="Contoh: Ruang 2"></label>
+            <label class="grow"><span>Lokasi <small class="muted">(opsional)</small></span><input name="lokasi" maxlength="80" placeholder="Contoh: Ruang 2"></label>
           </div>
           <div class="field">
             <span class="field-label">Ikon</span>

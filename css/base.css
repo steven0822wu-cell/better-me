@@ -93,6 +93,7 @@ a { color: inherit; text-decoration: none; }
 .seg button.active { background: var(--primary); color: var(--primary-text); }
 
 label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: .9rem; margin-bottom: 14px; }
+label small { font-weight: 400; }
 input, select, textarea {
   font: inherit; font-weight: 400; color: var(--text); background: var(--surface-2);
   border: 1px solid var(--border); border-radius: calc(var(--radius) * .6); padding: 10px 12px;
@@ -538,4 +539,75 @@ body.modal-open { overflow: hidden; }
   .heatmap { grid-template-rows: repeat(7, 14px); }
   .hm-cell { width: 14px; height: 14px; }
   .hm-days span { height: 14px; line-height: 14px; }
+}
+
+/* =========================================================
+   GYM & SPORT
+   ========================================================= */
+.gy-stats { grid-template-columns: repeat(6, 1fr); margin-bottom: 16px; }
+@media (max-width: 1200px) { .gy-stats { grid-template-columns: repeat(3, 1fr); } }
+.gy-stats .tile-value { font-size: 1.3rem; }
+.gy-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.gy-cols > .card { margin: 0 0 16px; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-top: 8px; }
+.cal b { font-size: .68rem; color: var(--muted); text-transform: uppercase; padding-bottom: 4px; }
+.cal-day { display: grid; place-items: center; aspect-ratio: 1; border-radius: 8px; font-size: .8rem; color: var(--muted); background: var(--surface-2); }
+.cal-day.has { background: color-mix(in srgb, var(--primary) 22%, var(--surface)); color: var(--text); font-size: 1rem; border: 1px solid var(--primary); }
+.cal-day.today { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.pr-list { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pr-list button { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 0 10px; align-items: center; text-align: left;
+  padding: 8px 10px; border-radius: calc(var(--radius) * .7); border: 0; background: var(--surface-2); color: var(--text); cursor: pointer; font-family: var(--font-body); transition: .15s; }
+.pr-list button:hover { background: color-mix(in srgb, var(--primary) 15%, var(--surface-2)); }
+.pr-name { font-weight: 600; font-size: .9rem; }
+.pr-val { font-size: .85rem; text-align: right; }
+.pr-list small { grid-column: 1 / -1; font-size: .7rem; }
+
+.gy-week { margin: 18px 0 8px; font-size: 1rem; }
+.gy-items { display: flex; flex-direction: column; gap: 8px; }
+.gy-item { display: flex; align-items: center; gap: 14px; margin: 0; width: 100%; text-align: left; cursor: pointer; color: var(--text);
+  font-family: var(--font-body); padding: 12px 14px; transition: transform .15s, border-color .15s; }
+.gy-item:hover { transform: translateY(-2px); border-color: var(--primary); }
+.gy-icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; font-size: 1.4rem; flex-shrink: 0;
+  background: color-mix(in srgb, var(--primary) 15%, var(--surface-2)); }
+.gy-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gy-body small { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.gy-nums { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: .78rem; font-weight: 600; white-space: nowrap; }
+
+.gy-jenis .chip span { min-width: 0; padding: 0 12px; font-size: .85rem; white-space: nowrap; }
+.gy-ex-head { display: flex; justify-content: space-between; align-items: center; }
+.ex-card { padding: 12px; border-radius: var(--radius); background: var(--surface-2); margin-bottom: 10px; border-left: 3px solid var(--primary); }
+.ex-top { display: flex; gap: 8px; margin-bottom: 8px; }
+.ex-name { flex: 1; min-width: 0; font-weight: 600; }
+.ex-sets { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.set-row { display: flex; align-items: center; gap: 8px; }
+.set-row input { width: 80px; padding: 8px; text-align: center; background: var(--surface); }
+.set-no { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: .72rem; font-weight: 700;
+  background: var(--primary); color: var(--primary-text); flex-shrink: 0; }
+.icon-btn.sm { width: 28px; height: 28px; font-size: .9rem; margin-left: auto; }
+.icon-btn:disabled { opacity: .35; cursor: default; }
+
+.ex-block { margin-bottom: 12px; }
+.set-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: .88rem; }
+.set-table th { text-align: left; font-size: .72rem; color: var(--muted); text-transform: uppercase; font-weight: 600; padding: 4px 8px; border-bottom: 1px solid var(--border); }
+.set-table td { padding: 6px 8px; border-bottom: 1px dashed var(--border); }
+.gy-note { padding: 10px 12px; border-radius: var(--radius); background: var(--surface-2); margin: 10px 0 0; }
+
+/* Grafik garis (1 seri) */
+.chart-wrap { position: relative; margin: 8px 0; }
+.line-chart { width: 100%; height: auto; display: block; overflow: visible; }
+.line-chart .grid { stroke: var(--border); stroke-width: 1; }
+.line-chart .axis { fill: var(--muted); font: 11px var(--font-body); }
+.line-chart .line { fill: none; stroke: var(--primary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.line-chart .dot { fill: var(--primary); stroke: var(--surface); stroke-width: 2; transition: r .15s; }
+.line-chart .dot.on { r: 7; }
+.line-chart .hit { fill: transparent; cursor: pointer; }
+.chart-tip { position: absolute; transform: translate(-50%, calc(-100% - 12px)); pointer-events: none; padding: 6px 10px; border-radius: 8px;
+  background: var(--text); color: var(--bg); font-size: .78rem; display: flex; flex-direction: column; align-items: center; white-space: nowrap; box-shadow: var(--shadow); }
+.chart-table summary { cursor: pointer; margin-top: 6px; }
+
+@media (max-width: 860px) {
+  .gy-cols { grid-template-columns: 1fr; gap: 0; }
+  .gy-stats { grid-template-columns: repeat(2, 1fr); }
+  .set-row input { width: 64px; }
 }

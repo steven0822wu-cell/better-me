@@ -4,6 +4,8 @@ import { sb } from '../supabase.js';
 import { today } from '../date.js';
 import { forDate, nextOf, hhmm, statusOf } from './todo-schedule.js';
 import { summaryFor, streakOf } from './habit.js';
+import { jenisOf } from './gym.js';
+import { relLabel } from '../date.js';
 import { addDays } from '../date.js';
 
 const SAPAAN = () => {
@@ -97,6 +99,7 @@ async function loadStats(el) {
   const uid = state.viewing.id;
   loadNextSchedule(el, uid);
   loadHabits(el, uid);
+  loadWorkout(el, uid);
   const { data } = await sb.from('todos').select('done').eq('user_id', uid).eq('tanggal', today());
   if (data) {
     const done = data.filter(t => t.done).length;
@@ -150,4 +153,15 @@ async function loadHabits(el, uid) {
     const lbl = el.querySelector('[data-tile="habit"] .tile-label');
     if (lbl) lbl.textContent = `Habit hari ini · 🔥 ${best}`;
   }
+}
+
+async function loadWorkout(el, uid) {
+  const { data } = await sb.from('workouts').select('jenis,tanggal,durasi_menit').eq('user_id', uid)
+    .order('tanggal', { ascending: false }).limit(1);
+  if (!data) return;
+  if (!data.length) return setTile(el, 'gym', 'Belum ada', null);
+  const w = data[0];
+  setTile(el, 'gym', `${jenisOf(w.jenis).icon} ${relLabel(w.tanggal)}`, null);
+  const lbl = el.querySelector('[data-tile="gym"] .tile-label');
+  if (lbl) lbl.textContent = `Latihan terakhir · ${w.jenis}${w.durasi_menit ? ' ' + w.durasi_menit + 'm' : ''}`;
 }
