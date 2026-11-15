@@ -3,6 +3,8 @@ import { persona, celebrate, sticker } from '../fx.js';
 import { sb } from '../supabase.js';
 import { today } from '../date.js';
 import { forDate, nextOf, hhmm, statusOf } from './todo-schedule.js';
+import { summaryFor, streakOf } from './habit.js';
+import { addDays } from '../date.js';
 
 const SAPAAN = () => {
   const h = new Date().getHours();
@@ -94,6 +96,7 @@ function tile(icon, label, value, route, i) {
 async function loadStats(el) {
   const uid = state.viewing.id;
   loadNextSchedule(el, uid);
+  loadHabits(el, uid);
   const { data } = await sb.from('todos').select('done').eq('user_id', uid).eq('tanggal', today());
   if (data) {
     const done = data.filter(t => t.done).length;
@@ -129,4 +132,22 @@ async function loadNextSchedule(el, uid) {
   box.classList.toggle('live', !!live);
   box.style.setProperty('--c', s.warna);
   box.hidden = false;
+}
+
+async function loadHabits(el, uid) {
+  const [h, l] = await Promise.all([
+    sb.from('habits').select('*').eq('user_id', uid).eq('aktif', true),
+    sb.from('habit_logs').select('habit_id,tanggal').eq('user_id', uid).gte('tanggal', addDays(today(), -60))
+  ]);
+  if (!h.data) return;
+  if (!h.data.length) return setTile(el, 'habit', 'Belum ada', null);
+  const logs = new Map();
+  (l.data || []).forEach(r => { if (!logs.has(r.habit_id)) logs.set(r.habit_id, new Set()); logs.get(r.habit_id).add(r.tanggal); });
+  const { total, done } = summaryFor(logs, h.data, today());
+  const best = Math.max(0, ...h.data.filter(x => x.frekuensi === 'harian').map(x => streakOf(logs, x)));
+  setTile(el, 'habit', total ? `${done} / ${total}` : 'Beres ✓', total ? Math.round(done / total * 100) : 100);
+  if (best) {
+    const lbl = el.querySelector('[data-tile="habit"] .tile-label');
+    if (lbl) lbl.textContent = `Habit hari ini · 🔥 ${best}`;
+  }
 }

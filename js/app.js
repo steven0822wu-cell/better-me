@@ -7,6 +7,7 @@ import { buildAmbient } from './fx.js';
 import home from './modules/home.js';
 import settings from './modules/settings.js';
 import todo from './modules/todo.js';
+import habit from './modules/habit.js';
 import { placeholder } from './modules/placeholder.js';
 
 applyCachedTheme();
@@ -24,7 +25,7 @@ export const NAV = [
 ];
 
 // Modul yang sudah jadi; sisanya placeholder sampai fasenya
-const MODULES = { home, settings, todo };
+const MODULES = { home, settings, todo, habit };
 
 const $ = s => document.querySelector(s);
 
