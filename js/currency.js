@@ -38,3 +38,12 @@ export function money(idr, view = 'IDR') {
   if (view === 'USD' && usdIdr) return fmtUsd.format(idr / usdIdr);
   return fmtIdr.format(idr);
 }
+
+export const getRate = () => usdIdr;
+
+// Cari koin di CoinGecko → [{ id, name, symbol, thumb }]
+export async function searchCoins(q) {
+  const r = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
+  const j = await r.json();
+  return (j.coins || []).slice(0, 8).map(c => ({ id: c.id, name: c.name, symbol: c.symbol, thumb: c.thumb }));
+}

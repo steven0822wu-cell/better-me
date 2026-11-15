@@ -6,7 +6,8 @@ import { forDate, nextOf, hhmm, statusOf } from './todo-schedule.js';
 import { summaryFor, streakOf } from './habit.js';
 import { jenisOf } from './gym.js';
 import { balanceOf, monthTotals } from './finance.js';
-import { money } from '../currency.js';
+import { money, getUsdIdr } from '../currency.js';
+import { position } from './invest.js';
 import { fetchAll } from '../db.js';
 import { relLabel } from '../date.js';
 import { addDays } from '../date.js';
@@ -104,6 +105,7 @@ async function loadStats(el) {
   loadHabits(el, uid);
   loadWorkout(el, uid);
   loadFinance(el, uid);
+  loadInvest(el, uid);
   const { data } = await sb.from('todos').select('done').eq('user_id', uid).eq('tanggal', today());
   if (data) {
     const done = data.filter(t => t.done).length;
@@ -183,4 +185,24 @@ async function loadFinance(el, uid) {
   setTile(el, 'finance', money(total, view), null);
   const lbl = el.querySelector('[data-tile="finance"] .tile-label');
   if (lbl) lbl.innerHTML = `Saldo total · bulan ini <span class="${net >= 0 ? 'amt-in' : 'amt-out'}">${net >= 0 ? '+' : '−'}${money(Math.abs(net), view)}</span>`;
+}
+
+async function loadInvest(el, uid) {
+  const [a, t, p, rate] = await Promise.all([
+    sb.from('investments').select('*').eq('user_id', uid),
+    fetchAll(() => sb.from('invest_txns').select('*').eq('user_id', uid)),
+    fetchAll(() => sb.from('invest_prices').select('*').eq('user_id', uid)),
+    getUsdIdr()
+  ]);
+  if (!a.data) return;
+  if (!a.data.length) return setTile(el, 'invest', 'Belum ada', null);
+  const group = (rows) => { const m = new Map(); (rows || []).forEach(x => { if (!m.has(x.investment_id)) m.set(x.investment_id, []); m.get(x.investment_id).push(x); }); return m; };
+  const tm = group(t.data), pm = group(p.data);
+  let val = 0, cost = 0;
+  a.data.forEach(x => { const r = position(x, tm.get(x.id), pm.get(x.id), {}, rate); val += r.valueIdr; cost += r.costIdr; });
+  const view = state.me?.currency_view;
+  setTile(el, 'invest', money(val, view), null);
+  const pct = cost ? (val - cost) / cost * 100 : 0;
+  const lbl = el.querySelector('[data-tile="invest"] .tile-label');
+  if (lbl && cost) lbl.innerHTML = `Portofolio · <span class="${pct >= 0 ? 'amt-in' : 'amt-out'}">${pct >= 0 ? '+' : ''}${pct.toFixed(1).replace('.', ',')}%</span>`;
 }

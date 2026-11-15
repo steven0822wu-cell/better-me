@@ -1,9 +1,9 @@
 // Service worker sederhana: cache aset statis, data selalu dari Supabase (network)
-const CACHE = 'bm-v9';
+const CACHE = 'bm-v10';
 const ASSETS = [
   'index.html', 'app.html', 'css/base.css', 'css/themes.css', 'css/fx.css', 'js/fx.js', 'icon.svg', 'manifest.json',
   'js/app.js', 'js/auth.js', 'js/config.js', 'js/currency.js', 'js/state.js',
-  'js/supabase.js', 'js/theme.js', 'js/ui.js', 'js/date.js', 'js/modules/todo.js', 'js/modules/todo-schedule.js', 'js/modules/habit.js', 'js/modules/gym.js', 'js/modules/finance.js', 'js/db.js',
+  'js/supabase.js', 'js/theme.js', 'js/ui.js', 'js/date.js', 'js/modules/todo.js', 'js/modules/todo-schedule.js', 'js/modules/habit.js', 'js/modules/gym.js', 'js/modules/finance.js', 'js/modules/invest.js', 'js/db.js',
   'js/modules/home.js', 'js/modules/settings.js', 'js/modules/placeholder.js'
 ];
 
