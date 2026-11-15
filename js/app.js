@@ -9,6 +9,7 @@ import settings from './modules/settings.js';
 import todo from './modules/todo.js';
 import habit from './modules/habit.js';
 import gym from './modules/gym.js';
+import finance from './modules/finance.js';
 import { placeholder } from './modules/placeholder.js';
 
 applyCachedTheme();
@@ -26,7 +27,7 @@ export const NAV = [
 ];
 
 // Modul yang sudah jadi; sisanya placeholder sampai fasenya
-const MODULES = { home, settings, todo, habit, gym };
+const MODULES = { home, settings, todo, habit, gym, finance };
 
 const $ = s => document.querySelector(s);
 

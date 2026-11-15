@@ -5,6 +5,9 @@ import { today } from '../date.js';
 import { forDate, nextOf, hhmm, statusOf } from './todo-schedule.js';
 import { summaryFor, streakOf } from './habit.js';
 import { jenisOf } from './gym.js';
+import { balanceOf, monthTotals } from './finance.js';
+import { money } from '../currency.js';
+import { fetchAll } from '../db.js';
 import { relLabel } from '../date.js';
 import { addDays } from '../date.js';
 
@@ -100,6 +103,7 @@ async function loadStats(el) {
   loadNextSchedule(el, uid);
   loadHabits(el, uid);
   loadWorkout(el, uid);
+  loadFinance(el, uid);
   const { data } = await sb.from('todos').select('done').eq('user_id', uid).eq('tanggal', today());
   if (data) {
     const done = data.filter(t => t.done).length;
@@ -164,4 +168,19 @@ async function loadWorkout(el, uid) {
   setTile(el, 'gym', `${jenisOf(w.jenis).icon} ${relLabel(w.tanggal)}`, null);
   const lbl = el.querySelector('[data-tile="gym"] .tile-label');
   if (lbl) lbl.textContent = `Latihan terakhir · ${w.jenis}${w.durasi_menit ? ' ' + w.durasi_menit + 'm' : ''}`;
+}
+
+async function loadFinance(el, uid) {
+  const [a, t] = await Promise.all([
+    sb.from('accounts').select('*').eq('user_id', uid).eq('aktif', true),
+    fetchAll(() => sb.from('transactions').select('tipe,jumlah_idr,account_id,ke_account_id,tanggal').eq('user_id', uid))
+  ]);
+  if (!a.data) return;
+  if (!a.data.length) return setTile(el, 'finance', 'Belum ada akun', null);
+  const view = state.me?.currency_view;
+  const total = a.data.reduce((s, x) => s + balanceOf(x, t.data || []), 0);
+  const { net } = monthTotals(t.data || [], today().slice(0, 7));
+  setTile(el, 'finance', money(total, view), null);
+  const lbl = el.querySelector('[data-tile="finance"] .tile-label');
+  if (lbl) lbl.innerHTML = `Saldo total · bulan ini <span class="${net >= 0 ? 'amt-in' : 'amt-out'}">${net >= 0 ? '+' : '−'}${money(Math.abs(net), view)}</span>`;
 }

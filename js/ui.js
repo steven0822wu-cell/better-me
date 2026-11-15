@@ -59,7 +59,11 @@ export function modal({ title, html = '', onClose } = {}) {
     setTimeout(() => back.remove(), 200);
     onClose?.();
   };
-  const onKey = e => e.key === 'Escape' && close();
+  const onKey = e => {
+    if (e.key !== 'Escape') return;
+    const all = document.querySelectorAll('.modal-back:not(.out)');
+    if (all[all.length - 1] === back) close();
+  };
   document.addEventListener('keydown', onKey);
   back.addEventListener('click', e => { if (e.target === back || e.target.closest('[data-close]')) close(); });
 
