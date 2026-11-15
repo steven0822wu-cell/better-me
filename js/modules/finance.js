@@ -105,6 +105,7 @@ async function load() {
     fetchAll(() => sb.from('transactions').select('*').eq('user_id', uid).order('tanggal', { ascending: false }).order('created_at', { ascending: false })),
     sb.from('budgets').select('*').eq('user_id', uid)
   ]);
+  if (!el.isConnected) return;   // halaman sudah ditinggal
   if (a.error) return toast('Gagal memuat finance: ' + a.error.message, 'error');
   accounts = a.data; cats = c.data || []; txns = t.data || []; budgets = b.data || [];
   txns.sort((x, y) => y.tanggal.localeCompare(x.tanggal) || String(y.created_at).localeCompare(String(x.created_at)));
@@ -114,6 +115,7 @@ async function load() {
     const r = await sb.from('fin_categories').insert(DEFAULT_CATS.map(([icon, nama, tipe]) => ({ icon, nama, tipe }))).select();
     if (!r.error) cats = r.data;
   }
+  if (!el.isConnected) return;
   draw();
 }
 

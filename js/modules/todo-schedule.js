@@ -64,6 +64,7 @@ export function createSchedule(container, { gridContainer, onChange } = {}) {
         sb.from('schedules').select('*').eq('user_id', vid).order('jam_mulai'),
       sb.from('schedule_logs').select('*').eq('user_id', vid).eq('tanggal', d)
     ]);
+    if (!container.isConnected) return;
     if (s.error) { container.innerHTML = ''; return toast('Gagal memuat jadwal: ' + s.error.message, 'error'); }
     all = s.data; uid = vid; logs = l.data || [];
     draw();

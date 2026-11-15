@@ -98,6 +98,7 @@ async function load() {
     fetchAll(() => sb.from('invest_prices').select('*').eq('user_id', uid)),
     getUsdIdr()
   ]);
+  if (!el.isConnected) return;   // halaman sudah ditinggal
   if (a.error) return toast('Gagal memuat investasi: ' + a.error.message, 'error');
   assets = a.data; rate = r || 16000;
   txns = new Map(); prices = new Map();
@@ -116,6 +117,7 @@ async function refreshLive(manual) {
   try {
     live = await getCryptoUsd(ids);
     liveAt = new Date();
+    if (!el.isConnected) return;
     if (!state.readOnly) {
       const rows = assets.filter(a => a.currency === 'CRYPTO' && live[a.symbol])
         .map(a => ({ investment_id: a.id, tanggal: today(), harga: live[a.symbol] }));

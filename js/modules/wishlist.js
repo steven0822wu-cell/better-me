@@ -51,6 +51,7 @@ export default {
 
 async function load() {
   const { data, error } = await sb.from('wishlist').select('*').eq('user_id', state.viewing.id).order('created_at', { ascending: false });
+  if (!el.isConnected) return;   // halaman sudah ditinggal
   if (error) return toast('Gagal memuat wishlist: ' + error.message, 'error');
   items = data;
   draw();

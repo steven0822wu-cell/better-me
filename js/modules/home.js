@@ -116,6 +116,7 @@ async function loadStats(el) {
 }
 
 function setTile(el, route, value, pct) {
+  if (!el.isConnected) return;
   const tile = el.querySelector(`[data-tile="${route}"]`);
   if (!tile) return;
   tile.querySelector('.tile-value').textContent = value;

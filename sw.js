@@ -1,5 +1,5 @@
 // Service worker sederhana: cache aset statis, data selalu dari Supabase (network)
-const CACHE = 'bm-v11';
+const CACHE = 'bm-v12';
 const ASSETS = [
   'index.html', 'app.html', 'css/base.css', 'css/themes.css', 'css/fx.css', 'js/fx.js', 'icon.svg', 'manifest.json',
   'js/app.js', 'js/auth.js', 'js/config.js', 'js/currency.js', 'js/state.js',

@@ -125,6 +125,7 @@ async function load() {
     fetchAll(() => sb.from('habit_logs').select('habit_id,tanggal').eq('user_id', uid)
       .gte('tanggal', addDays(today(), -400)).order('tanggal'))
   ]);
+  if (!el.isConnected) return;   // halaman sudah ditinggal
   if (h.error) return toast('Gagal memuat habit: ' + h.error.message, 'error');
   habits = h.data;
   logs = new Map();

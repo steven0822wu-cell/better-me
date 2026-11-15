@@ -95,6 +95,7 @@ async function load() {
     fetchAll(() => sb.from('workouts').select('*').eq('user_id', uid).order('tanggal', { ascending: false }).order('created_at', { ascending: false })),
     fetchAll(() => sb.from('workout_sets').select('*').eq('user_id', uid).order('set_ke'))
   ]);
+  if (!el.isConnected) return;   // halaman sudah ditinggal
   if (w.error) return toast('Gagal memuat latihan: ' + w.error.message, 'error');
   workouts = w.data;
   sets = new Map();

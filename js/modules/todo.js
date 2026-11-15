@@ -93,6 +93,7 @@ async function load() {
       .gte('tanggal', ws).lte('tanggal', addDays(ws, 6)),
     sched.load(cur)
   ]);
+  if (!el.isConnected) return;   // halaman sudah ditinggal
   if (a.error) return toast('Gagal memuat: ' + a.error.message, 'error');
 
   items = a.data;

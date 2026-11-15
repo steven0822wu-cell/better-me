@@ -105,7 +105,13 @@ function render() {
   const el = $('#view');
   el.innerHTML = '';
   el.classList.remove('fx-enter'); void el.offsetWidth; el.classList.add('fx-enter');
-  Promise.resolve(mod.render(el, state)).catch(e => {
+  // Tiap render dapat wadah baru: kalau user pindah halaman sebelum data selesai dimuat,
+  // halaman lama menulis ke wadah yang sudah dilepas (tidak error, tidak bentrok)
+  const page = document.createElement('div');
+  page.className = 'page';
+  el.appendChild(page);
+  Promise.resolve(mod.render(page, state)).catch(e => {
+    if (!page.isConnected) return;   // halaman sudah ditinggal — abaikan
     console.error(e);
     toast(e.message, 'error');
   });
