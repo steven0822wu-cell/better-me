@@ -4,6 +4,7 @@ import { toast, esc, modal } from '../ui.js';
 import { sticker, celebrate, persona } from '../fx.js';
 import { fetchAll } from '../db.js';
 import { today, addDays, weekStart, relLabel, fmtLong, fmtShort, parse } from '../date.js';
+import { createSleep } from './sleep.js';
 
 const ICONS = ['✅', '💧', '📖', '🏃', '🧘', '😴', '🀄', '✍️', '🥗', '🚭', '🍬', '💊', '🙏', '🎸', '💻', '🧹', '🌅', '📵', '💰', '❤️'];
 const COLORS = ['#7c9cff', '#2f9e44', '#f59f00', '#e62429', '#b08d57', '#ff2bd6', '#00b8d9', '#845ef7'];
@@ -96,12 +97,16 @@ export default {
 
       <section class="card hb-summary" id="hb-summary"></section>
 
+      <section class="card sl-card" id="hb-sleep"></section>
+
       <div class="hb-toolbar" data-edit>
         <button class="btn" id="hb-add">＋ Habit baru</button>
         <button class="btn btn-ghost" id="hb-manage">⚙️ Kelola & urutkan</button>
       </div>
 
       <div class="habit-grid" id="hb-list"></div>
+
+      <section class="card sl-stats" id="hb-sleep-stats"></section>
 
       <section class="card heat-card" id="hb-heat"></section>`;
 
@@ -112,6 +117,7 @@ export default {
     el.querySelector('#hb-manage').onclick = openManager;
     el.querySelector('#hb-list').onclick = onListClick;
 
+    createSleep(el.querySelector('#hb-sleep'), el.querySelector('#hb-sleep-stats'), { onHabitChange: () => load() }).load();
     await load();
   }
 };

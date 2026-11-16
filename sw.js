@@ -1,12 +1,12 @@
 // Service worker: cache aset statis + terima notifikasi push
-const CACHE = 'bm-v14';
+const CACHE = 'bm-v15';
 const ASSETS = [
   'index.html', 'app.html', 'css/base.css', 'css/themes.css', 'css/fx.css', 'icon.svg', 'manifest.json',
   'icons/icon-192.png', 'icons/badge-96.png',
   'js/app.js', 'js/auth.js', 'js/config.js', 'js/currency.js', 'js/state.js', 'js/supabase.js', 'js/theme.js',
   'js/ui.js', 'js/date.js', 'js/db.js', 'js/fx.js', 'js/push.js',
   'js/modules/home.js', 'js/modules/settings.js', 'js/modules/settings-notif.js', 'js/modules/placeholder.js', 'js/modules/todo.js',
-  'js/modules/todo-schedule.js', 'js/modules/habit.js', 'js/modules/gym.js', 'js/modules/finance.js',
+  'js/modules/todo-schedule.js', 'js/modules/habit.js', 'js/modules/sleep.js', 'js/modules/gym.js', 'js/modules/finance.js',
   'js/modules/invest.js', 'js/modules/wishlist.js', 'js/modules/target.js'
 ];
 

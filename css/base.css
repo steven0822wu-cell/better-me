@@ -852,3 +852,38 @@ body.read-only .txn { cursor: default; }
 .pace-bar small { display: block; margin-top: 6px; }
 .tg-why { margin: 12px 0 0; padding: 10px 14px; border-left: 4px solid var(--accent); background: var(--surface-2); border-radius: 0 var(--radius) var(--radius) 0; font-style: italic; }
 @media (max-width: 860px) { .tg-grid { grid-template-columns: 1fr; } .tipe-grid { grid-template-columns: 1fr 1fr; } }
+
+/* =========================================================
+   TIDUR & BANGUN
+   ========================================================= */
+.sl-card { background: linear-gradient(135deg, color-mix(in srgb, #3b4cca 16%, var(--surface)), var(--surface) 60%); }
+.sl-card:empty, .sl-stats:empty { display: none; }
+.sl-target { white-space: nowrap; }
+.sl-state { display: flex; align-items: center; gap: 14px; margin: 8px 0 14px; }
+.sl-state > div { display: flex; flex-direction: column; }
+.sl-state b { font-size: 1.05rem; }
+.sl-moon { font-size: 2.4rem; line-height: 1; }
+.sl-state.sleeping .sl-moon { animation: fx-float 3s ease-in-out infinite; }
+.sl-big { width: 100%; padding: 16px; font-size: 1.1rem; border-radius: var(--radius); }
+.sl-big.wake { background: linear-gradient(90deg, #f59f00, #ffd43b); color: #1b1b1b; }
+.sl-links { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+.sl-stats .sched-head { flex-wrap: wrap; }
+.sl-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0 14px; }
+.sl-tile { display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: var(--radius); background: var(--surface-2); }
+.sl-tile span { font-size: .78rem; color: var(--muted); }
+.sl-tile b { font: var(--head-weight) 1.25rem var(--font-head); }
+.sl-tile small { font-size: .72rem; }
+.sl-bar { fill: var(--primary); cursor: pointer; transition: opacity .15s; }
+.sl-bar.short { fill: color-mix(in srgb, var(--primary) 45%, var(--surface-2)); }
+.sl-bar.on { stroke: var(--text); stroke-width: 2; }
+.line-chart .target-line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.line-chart .axis.tl { fill: var(--accent); font-weight: 700; }
+.sl-ext { margin-top: 4px; }
+.q-row { display: flex; justify-content: space-between; gap: 6px; margin: 10px 0; }
+.q-btn { flex: 1; font-size: 2rem; padding: 10px 0; border-radius: var(--radius); border: 2px solid var(--border); background: var(--surface-2); cursor: pointer; transition: transform .15s; }
+.q-btn:hover { transform: scale(1.1); border-color: var(--primary); }
+.q-note { width: 100%; }
+@media (max-width: 860px) {
+  .sl-tiles { grid-template-columns: 1fr 1fr; }
+  .sl-target { white-space: normal; }
+}
