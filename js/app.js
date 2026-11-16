@@ -13,6 +13,7 @@ import gym from './modules/gym.js';
 import finance from './modules/finance.js';
 import invest from './modules/invest.js';
 import wishlist from './modules/wishlist.js';
+import target from './modules/target.js';
 import { placeholder } from './modules/placeholder.js';
 
 applyCachedTheme();
@@ -30,7 +31,7 @@ export const NAV = [
 ];
 
 // Modul yang sudah jadi; sisanya placeholder sampai fasenya
-const MODULES = { home, settings, todo, habit, gym, finance, invest, wishlist };
+const MODULES = { home, settings, todo, habit, gym, finance, invest, wishlist, target };
 
 const $ = s => document.querySelector(s);
 

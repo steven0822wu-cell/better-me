@@ -1,5 +1,5 @@
 // Service worker: cache aset statis + terima notifikasi push
-const CACHE = 'bm-v13';
+const CACHE = 'bm-v14';
 const ASSETS = [
   'index.html', 'app.html', 'css/base.css', 'css/themes.css', 'css/fx.css', 'icon.svg', 'manifest.json',
   'icons/icon-192.png', 'icons/badge-96.png',
@@ -7,7 +7,7 @@ const ASSETS = [
   'js/ui.js', 'js/date.js', 'js/db.js', 'js/fx.js', 'js/push.js',
   'js/modules/home.js', 'js/modules/settings.js', 'js/modules/settings-notif.js', 'js/modules/placeholder.js', 'js/modules/todo.js',
   'js/modules/todo-schedule.js', 'js/modules/habit.js', 'js/modules/gym.js', 'js/modules/finance.js',
-  'js/modules/invest.js', 'js/modules/wishlist.js'
+  'js/modules/invest.js', 'js/modules/wishlist.js', 'js/modules/target.js'
 ];
 
 self.addEventListener('install', e => {

@@ -107,6 +107,7 @@ async function loadStats(el) {
   loadFinance(el, uid);
   loadInvest(el, uid);
   loadWishlist(el, uid);
+  loadTargets(el, uid);
   const { data } = await sb.from('todos').select('done').eq('user_id', uid).eq('tanggal', today());
   if (data) {
     const done = data.filter(t => t.done).length;
@@ -219,4 +220,16 @@ async function loadWishlist(el, uid) {
   setTile(el, 'wishlist', `${data.length} impian`, total ? Math.round(saved / total * 100) : 0);
   const lbl = el.querySelector('[data-tile="wishlist"] .tile-label');
   if (lbl) lbl.textContent = ready ? `Wishlist · 🎉 ${ready} siap dibeli` : `Wishlist · ${total ? Math.round(saved / total * 100) : 0}% terkumpul`;
+}
+
+async function loadTargets(el, uid) {
+  const { data } = await sb.from('targets').select('judul,nilai_target,nilai_sekarang,deadline').eq('user_id', uid).eq('status', 'aktif');
+  if (!data) return;
+  if (!data.length) return setTile(el, 'target', 'Belum ada', null);
+  const pcts = data.map(t => Number(t.nilai_target) ? Math.min(100, Number(t.nilai_sekarang) / Number(t.nilai_target) * 100) : 0);
+  const avg = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+  setTile(el, 'target', `${data.length} aktif`, avg);
+  const next = data.filter(t => t.deadline && t.deadline >= today()).sort((a, b) => a.deadline.localeCompare(b.deadline))[0];
+  const lbl = el.querySelector('[data-tile="target"] .tile-label');
+  if (lbl) lbl.textContent = next ? `Target · terdekat: ${next.judul}` : `Target · rata-rata ${avg}%`;
 }
