@@ -5,6 +5,7 @@ import { sticker, celebrate, persona } from '../fx.js';
 import { fetchAll } from '../db.js';
 import { money, getUsdIdr, getCryptoUsd, searchCoins } from '../currency.js';
 import { today, fmtShort, relLabel } from '../date.js';
+import { parseAmount, fmtInput } from './finance.js';
 
 export const JENIS = {
   saham:     { icon: '📊', label: 'Saham',      unit: 'lembar', cur: 'IDR' },
@@ -265,6 +266,107 @@ function openDetail(a) {
 }
 
 // ---------- Form aset ----------
+// ---------- Form beli/jual: pakai NOMINAL (bisa pecahan) atau JUMLAH UNIT ----------
+// Crypto, saham US & reksa dana biasanya dibeli per nominal → dapat pecahan unit.
+const defaultMode = (jenis, cur) => (cur !== 'IDR' || ['crypto', 'reksadana'].includes(jenis)) ? 'nominal' : 'unit';
+const showNum = n => n ? String(+Number(n).toFixed(8)).replace('.', ',') : '';
+
+function tradeForm(box, { jenis, currency, tipe = 'beli', price = null, maxUnits = 0, avg = 0 }) {
+  const j = JENIS[jenis], assetCur = currency === 'IDR' ? 'IDR' : 'USD', assetLbl = assetCur === 'IDR' ? 'Rp' : '$';
+  let mode = defaultMode(jenis, currency);
+  let ncur = jenis === 'crypto' || assetCur === 'IDR' ? 'IDR' : 'USD';   // crypto biasanya dibeli pakai Rupiah
+  let curPrice = price;
+  const keep = {};
+
+  const render = () => {
+    box.querySelectorAll('input').forEach(i => keep[i.name] = i.value);
+    const verb = tipe === 'beli' ? 'dibeli' : 'dijual', got = tipe === 'beli' ? 'didapat' : 'dijual';
+    box.innerHTML = `
+      <div class="seg seg-full trade-mode">
+        <button type="button" data-mode="nominal" class="${mode === 'nominal' ? 'active' : ''}">💵 Pakai nominal</button>
+        <button type="button" data-mode="unit" class="${mode === 'unit' ? 'active' : ''}">🔢 Pakai jumlah ${j.unit}</button>
+      </div>
+      ${mode === 'nominal' ? `
+        <label class="amt-field"><span>Nominal ${verb}</span>
+          <div class="amt-input">
+            ${assetCur === 'USD' ? `<select name="ncur" class="ncur">${['IDR', 'USD'].map(c => `<option value="${c}" ${c === ncur ? 'selected' : ''}>${c === 'IDR' ? 'Rp' : '$'}</option>`).join('')}</select>` : '<span>Rp</span>'}
+            <input name="nominal" inputmode="decimal" placeholder="${ncur === 'IDR' ? '100.000' : '50'}" value="${keep.nominal || ''}"></div>
+          <small class="muted">${ncur === 'IDR' ? 'Bisa ketik singkat: 100rb, 1,5jt · ' : ''}sudah termasuk fee</small></label>
+        <div class="row">
+          <label><span>Jumlah ${j.unit} ${got} <small class="muted">(opsional)</small></span><input name="unit_n" inputmode="decimal" placeholder="lihat di aplikasi" value="${keep.unit_n || ''}"></label>
+          <label><span>Harga per ${j.unit} (${assetLbl}) <small class="muted">(kalau jumlah kosong)</small></span><input name="harga_n" inputmode="decimal" value="${keep.harga_n ?? showNum(curPrice)}"></label>
+        </div>
+        <p class="muted small">💡 Paling akurat: isi <b>jumlah ${j.unit}</b> yang tertera di aplikasi ${jenis === 'crypto' ? 'exchange' : 'broker'} — harga efektifnya dihitung otomatis.</p>` : `
+        <div class="row">
+          <label>Jumlah ${j.unit}<input name="unit" inputmode="decimal" placeholder="${tipe === 'jual' && maxUnits ? 'maks ' + fmtUnit(maxUnits) : jenis === 'saham' && assetCur === 'IDR' ? '100 = 1 lot' : '0'}" value="${keep.unit || ''}"></label>
+          <label>Harga per ${j.unit} (${assetLbl})<input name="harga" inputmode="decimal" value="${keep.harga ?? showNum(curPrice)}"></label>
+          <label><span>Fee (${assetLbl}) <small class="muted">(opsional)</small></span><input name="fee" inputmode="decimal" placeholder="0" value="${keep.fee || ''}"></label>
+        </div>`}
+      ${tipe === 'jual' && maxUnits ? `<button type="button" class="link-btn" data-all>Jual semua (${fmtUnit(maxUnits)} ${j.unit})</button>` : ''}
+      <p class="small trade-prev" id="trade-prev"></p>`;
+
+    box.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { mode = b.dataset.mode; render(); });
+    const sel = box.querySelector('.ncur');
+    if (sel) sel.onchange = () => { ncur = sel.value; keep.nominal = ''; render(); };
+    const nom = box.querySelector('[name=nominal]');
+    if (nom) nom.addEventListener('input', () => { if (ncur === 'IDR' && !/[a-z]/i.test(nom.value)) nom.value = fmtInput(parseAmount(nom.value)); });
+    box.querySelector('[data-all]')?.addEventListener('click', () => {
+      const u = box.querySelector(mode === 'nominal' ? '[name=unit_n]' : '[name=unit]');
+      u.value = showNum(maxUnits); preview();
+    });
+    box.oninput = preview;
+    preview();
+  };
+
+  const val = n => box.querySelector(`[name=${n}]`)?.value || '';
+
+  // Hasil: { unit, harga (per unit, mata uang aset), fee } · { empty: true } · { error }
+  const read = () => {
+    if (mode === 'unit') {
+      const unit = num(val('unit')), harga = num(val('harga')), fee = num(val('fee'));
+      if (!val('unit') && !val('harga')) return { empty: true };
+      if (!(unit > 0) || !(harga > 0)) return { error: `Isi jumlah ${j.unit} dan harga` };
+      return { unit, harga, fee };
+    }
+    const N = ncur === 'IDR' ? parseAmount(val('nominal')) : num(val('nominal'));
+    if (!val('nominal') && !val('unit_n')) return { empty: true };
+    if (!(N > 0)) return { error: 'Isi nominal' };
+    const NA = assetCur === ncur ? N : assetCur === 'USD' ? N / rate : N * rate;   // ke mata uang aset
+    let unit = num(val('unit_n')), harga = num(val('harga_n'));
+    if (unit > 0) harga = NA / unit;
+    else if (harga > 0) unit = +(NA / harga).toFixed(8);
+    else return { error: `Isi jumlah ${j.unit} ${tipe === 'beli' ? 'yang didapat' : 'yang dijual'} atau harga per ${j.unit}` };
+    if (!(unit > 0)) return { error: 'Nominal terlalu kecil' };
+    return { unit, harga, fee: 0, nominal: N, ncur };
+  };
+
+  const preview = () => {
+    const out = box.querySelector('#trade-prev');
+    const r = read();
+    if (r.empty || r.error) { out.innerHTML = ''; return; }
+    const total = r.unit * r.harga + (tipe === 'beli' ? r.fee : -r.fee);
+    let s = `≈ <b>${fmtUnit(r.unit)} ${j.unit}</b> @ ${fmtNative(r.harga, assetCur)} · total <b>${fmtNative(total, assetCur)}</b>`;
+    if (assetCur === 'USD') s += ` <span class="muted">(≈ Rp ${Math.round(total * rate).toLocaleString('id-ID')})</span>`;
+    if (tipe === 'jual' && avg) {
+      const g = r.unit * r.harga - r.fee - avg * r.unit;
+      s += `<br>Estimasi ${g >= 0 ? 'untung' : 'rugi'}: <b class="${g >= 0 ? 'amt-in' : 'amt-out'}">${fmtNative(Math.abs(g), assetCur)}</b>`;
+    }
+    if (tipe === 'jual' && maxUnits && r.unit > maxUnits + 1e-9) s += `<br><span class="amt-out">⚠️ Melebihi yang dimiliki (${fmtUnit(maxUnits)} ${j.unit})</span>`;
+    out.innerHTML = s;
+  };
+
+  render();
+  return {
+    read,
+    setPrice(p) {
+      curPrice = p;
+      const h = box.querySelector(mode === 'nominal' ? '[name=harga_n]' : '[name=harga]');
+      if (h && !h.value) h.value = showNum(p);
+      preview();
+    }
+  };
+}
+
 function openAsset(a = null) {
   try { assertCanEdit(); } catch (e) { return toast(e.message, 'error'); }
   let jenis = a?.jenis || 'saham';
@@ -300,12 +402,8 @@ function openAsset(a = null) {
         ${a ? '' : `
           <fieldset class="first-buy">
             <legend>Pembelian pertama <small class="muted">(opsional, bisa nanti)</small></legend>
-            <div class="row">
-              ${isDepo ? `<label class="grow">Nominal (Rp)<input name="harga" inputmode="decimal" placeholder="10.000.000"></label>` : `
-              <label>Jumlah ${JENIS[jenis].unit}<input name="unit" inputmode="decimal" placeholder="${jenis === 'saham' ? '100 = 1 lot' : '0'}"></label>
-              <label>Harga per ${JENIS[jenis].unit} (${curLbl})<input name="harga" inputmode="decimal" placeholder="0"></label>`}
-              <label>Tanggal<input type="date" name="tanggal" value="${today()}" max="${today()}"></label>
-            </div>
+            ${isDepo ? `<div class="row"><label class="grow">Nominal (Rp)<input name="harga" inputmode="decimal" placeholder="10.000.000"></label></div>` : '<div id="fb-box"></div>'}
+            <label>Tanggal<input type="date" name="tanggal" value="${today()}" max="${today()}"></label>
           </fieldset>`}
         <div class="form-actions">
           <button class="btn" type="submit">💾 Simpan</button>
@@ -316,6 +414,7 @@ function openAsset(a = null) {
     const f = m.body.querySelector('form');
     f.querySelectorAll('[name=jenis]').forEach(r => r.onchange = () => { jenis = r.value; render(); });
     f.querySelectorAll('[data-cur]').forEach(b => b.onclick = () => { cur = b.dataset.cur; render(); });
+    const tf = !a && !isDepo ? tradeForm(f.querySelector('#fb-box'), { jenis, currency: cur, tipe: 'beli' }) : null;
 
     if (isCrypto) {
       let timer;
@@ -335,6 +434,10 @@ function openAsset(a = null) {
               f.symbol.value = b.dataset.id; f.nama.value = b.dataset.name;
               f.querySelector('#coin-sel').innerHTML = `Terpilih: <b>${esc(b.dataset.name)}</b> (${esc(b.dataset.id)})`;
               box.innerHTML = '';
+              // Ambil harga sekarang supaya beli pakai nominal langsung terhitung
+              getCryptoUsd([b.dataset.id]).then(pr => {
+                if (pr[b.dataset.id]) { tf?.setPrice(pr[b.dataset.id]); f.querySelector('#coin-sel').innerHTML += ` · $${Number(pr[b.dataset.id]).toLocaleString('en-US')}`; }
+              }).catch(() => {});
             });
           } catch { box.innerHTML = '<span class="muted small">Gagal mencari. Cek koneksi lalu coba lagi.</span>'; }
         }, 400);
@@ -351,6 +454,8 @@ function openAsset(a = null) {
       };
       if (isCrypto && !row.symbol) return toast('Pilih koin dari hasil pencarian', 'error');
       if (!row.nama) return toast('Isi nama aset', 'error');
+      const buy = tf ? tf.read() : null;
+      if (buy?.error) return toast('Pembelian pertama: ' + buy.error, 'error');
       const q = a ? sb.from('investments').update(row).eq('id', a.id).select().single()
                   : sb.from('investments').insert(row).select().single();
       const { data, error } = await q;
@@ -359,9 +464,9 @@ function openAsset(a = null) {
 
       assets.push(data);
       // Pembelian pertama
-      const harga = num(f.harga?.value || ''), unit = isDepo ? 1 : num(f.unit?.value || '');
-      if (harga > 0 && unit > 0) {
-        const r = await sb.from('invest_txns').insert({ investment_id: data.id, tipe: 'beli', unit, harga, tanggal: f.tanggal.value }).select().single();
+      const first = isDepo ? { unit: 1, harga: num(f.harga?.value || ''), fee: 0 } : buy;
+      if (first && !first.empty && first.harga > 0 && first.unit > 0) {
+        const r = await sb.from('invest_txns').insert({ investment_id: data.id, tipe: 'beli', unit: first.unit, harga: first.harga, fee: first.fee || 0, tanggal: f.tanggal.value }).select().single();
         if (r.error) toast('Aset tersimpan, tapi pembelian gagal: ' + r.error.message, 'error');
         else txns.set(data.id, [r.data]);
       }
@@ -385,50 +490,43 @@ function openAsset(a = null) {
 function openTxn(a, tipe) {
   try { assertCanEdit(); } catch (e) { return toast(e.message, 'error'); }
   const p = posOf(a), j = JENIS[a.jenis], isDepo = a.jenis === 'deposito';
-  const curLbl = a.currency === 'IDR' ? 'Rp' : '$';
   const m = modal({ title: `${tipe === 'beli' ? '＋ Beli' : '➖ Jual'} ${a.nama}` });
   m.body.innerHTML = `
     <form class="sched-form" autocomplete="off">
-      <div class="row">
-        ${isDepo ? `<label class="grow">Nominal (Rp)<input name="harga" inputmode="decimal" required placeholder="0"></label>` : `
-        <label>Jumlah ${j.unit}<input name="unit" inputmode="decimal" required placeholder="${tipe === 'jual' ? 'maks ' + fmtUnit(p.units) : '0'}"></label>
-        <label>Harga per ${j.unit} (${curLbl})<input name="harga" inputmode="decimal" required value="${p.price != null ? String(+Number(p.price).toFixed(8)).replace('.', ',') : ''}"></label>`}
-      </div>
-      <div class="row">
-        <label>Fee (${curLbl}) <small class="muted">(opsional)</small><input name="fee" inputmode="decimal" placeholder="0"></label>
-        <label>Tanggal<input type="date" name="tanggal" required value="${today()}" max="${today()}"></label>
-      </div>
-      ${tipe === 'jual' && !isDepo ? `<button type="button" class="link-btn" data-act="all">Jual semua (${fmtUnit(p.units)} ${j.unit})</button>` : ''}
-      <p class="muted small" id="tx-prev"></p>
+      ${isDepo ? `<div class="row"><label class="grow">${tipe === 'beli' ? 'Nominal ditambahkan' : 'Nominal cair diterima'} (Rp)<input name="harga" inputmode="decimal" required placeholder="0"></label></div>`
+        : '<div id="tx-box"></div>'}
+      <label>Tanggal<input type="date" name="tanggal" required value="${today()}" max="${today()}"></label>
       <label><span>Catatan <small class="muted">(opsional)</small></span><input name="catatan" maxlength="120"></label>
       <div class="form-actions"><button class="btn" type="submit">💾 Simpan</button></div>
     </form>`;
-  const f = m.body.querySelector('form'), prev = f.querySelector('#tx-prev');
-  const calc = () => {
-    const u = isDepo ? 1 : num(f.unit.value), h = num(f.harga.value), fee = num(f.fee.value);
-    if (!u || !h) { prev.textContent = ''; return; }
-    const total = u * h + (tipe === 'beli' ? fee : -fee);
-    let s = `Total ${tipe === 'beli' ? 'bayar' : 'diterima'}: <b>${fmtNative(total, a.currency === 'IDR' ? 'IDR' : 'USD')}</b>`;
-    if (tipe === 'jual' && p.units) s += ` · estimasi ${u * h - fee - p.avg * u >= 0 ? 'untung' : 'rugi'} <b>${fmtNative(Math.abs(u * h - fee - p.avg * u), a.currency === 'IDR' ? 'IDR' : 'USD')}</b>`;
-    prev.innerHTML = s;
-  };
-  f.oninput = calc; calc();
-  f.querySelector('[data-act=all]')?.addEventListener('click', () => { f.unit.value = String(p.units).replace('.', ','); calc(); });
+  const f = m.body.querySelector('form');
+  const tf = isDepo ? null : tradeForm(f.querySelector('#tx-box'), {
+    jenis: a.jenis, currency: a.currency, tipe, price: p.price, maxUnits: tipe === 'jual' ? p.units : 0, avg: p.avg
+  });
+  if (isDepo) f.harga.oninput = () => { if (!/[a-z]/i.test(f.harga.value)) f.harga.value = fmtInput(parseAmount(f.harga.value)); };
 
   f.onsubmit = async e => {
     e.preventDefault();
-    const unit = isDepo ? 1 : num(f.unit.value), harga = num(f.harga.value), fee = num(f.fee.value);
-    if (!(unit > 0) || !(harga > 0)) return toast('Isi jumlah dan harga yang valid', 'error');
-    if (tipe === 'jual' && !isDepo && unit > p.units + 1e-9) return toast(`Maksimal ${fmtUnit(p.units)} ${j.unit}`, 'error');
-    const row = { investment_id: a.id, tipe, unit: isDepo && tipe === 'jual' ? 1 : unit, harga, fee, tanggal: f.tanggal.value, catatan: f.catatan.value.trim() || null };
-    // Deposito cair: jual seluruh posisi dengan nominal yang diterima
-    if (isDepo && tipe === 'jual') { row.unit = p.units || 1; row.harga = harga / row.unit; }
+    let r;
+    if (isDepo) {
+      const v = parseAmount(f.harga.value);
+      if (!(v > 0)) return toast('Isi nominal', 'error');
+      // Deposito cair: jual seluruh posisi dengan nominal yang diterima
+      r = tipe === 'jual' ? { unit: p.units || 1, harga: v / (p.units || 1), fee: 0 } : { unit: 1, harga: v, fee: 0 };
+    } else {
+      r = tf.read();
+      if (r.empty) return toast('Isi nominal atau jumlah unit', 'error');
+      if (r.error) return toast(r.error, 'error');
+      if (tipe === 'jual' && r.unit > p.units + 1e-9) return toast(`Maksimal ${fmtUnit(p.units)} ${j.unit}`, 'error');
+      if (tipe === 'jual' && Math.abs(r.unit - p.units) < 1e-8) r.unit = p.units;   // jual semua → pas habis
+    }
+    const row = { investment_id: a.id, tipe, unit: r.unit, harga: r.harga, fee: r.fee || 0, tanggal: f.tanggal.value, catatan: f.catatan.value.trim() || null };
     const { data, error } = await sb.from('invest_txns').insert(row).select().single();
     if (error) return toast('Gagal menyimpan: ' + error.message, 'error');
     txns.set(a.id, [...(txns.get(a.id) || []), data]);
     m.close(); draw();
     if (tipe === 'jual') {
-      const gain = row.unit * row.harga - fee - p.avg * row.unit;
+      const gain = row.unit * row.harga - row.fee - p.avg * row.unit;
       gain > 0 ? (celebrate(), setTimeout(() => sticker('💰 Cuan terealisasi!'), 600)) : toast('Penjualan tercatat');
     } else sticker();
   };

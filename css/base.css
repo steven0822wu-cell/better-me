@@ -887,3 +887,9 @@ body.read-only .txn { cursor: default; }
   .sl-tiles { grid-template-columns: 1fr 1fr; }
   .sl-target { white-space: normal; }
 }
+
+/* Form beli/jual investasi */
+.trade-mode { margin-bottom: 12px; }
+.amt-input .ncur { border: 0; background: transparent; color: var(--muted); font-weight: 700; padding: 0 4px 0 0; cursor: pointer; }
+.trade-prev { margin: 4px 0 12px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); }
+.trade-prev:empty { display: none; }
