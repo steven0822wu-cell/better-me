@@ -3,7 +3,7 @@ import { state, assertCanEdit } from '../state.js';
 import { toast, esc, modal } from '../ui.js';
 import { sticker, celebrate, persona } from '../fx.js';
 import { fetchAll } from '../db.js';
-import { money, getUsdIdr, getCryptoUsd, searchCoins } from '../currency.js';
+import { money, getUsdIdr, getCryptoPrices, searchCoins } from '../currency.js';
 import { today, fmtShort, relLabel } from '../date.js';
 import { parseAmount, fmtInput } from './finance.js';
 
@@ -11,7 +11,7 @@ export const JENIS = {
   saham:     { icon: '📊', label: 'Saham',      unit: 'lembar', cur: 'IDR' },
   reksadana: { icon: '🧺', label: 'Reksa Dana', unit: 'unit',   cur: 'IDR' },
   emas:      { icon: '🪙', label: 'Emas',       unit: 'gram',   cur: 'IDR' },
-  crypto:    { icon: '₿',  label: 'Crypto',     unit: 'koin',   cur: 'CRYPTO' },
+  crypto:    { icon: '₿',  label: 'Crypto',     unit: 'koin',   cur: 'IDR' },
   deposito:  { icon: '🏦', label: 'Deposito',   unit: '',       cur: 'IDR' },
   obligasi:  { icon: '📜', label: 'Obligasi',   unit: 'unit',   cur: 'IDR' },
   lainnya:   { icon: '💼', label: 'Lainnya',    unit: 'unit',   cur: 'IDR' }
@@ -52,7 +52,10 @@ export function position(a, list, priceList, liveMap, usdIdr) {
   const lastPrice = [...(priceList || [])].sort((x, y) => y.tanggal.localeCompare(x.tanggal))[0];
   const lastTxn = sorted[sorted.length - 1];
   let price = null, priceDate = null, priceSrc = '';
-  if (a.currency === 'CRYPTO' && liveMap?.[a.symbol]) { price = liveMap[a.symbol]; priceDate = today(); priceSrc = 'live'; }
+  // Crypto: currency 'IDR' = dihitung dalam Rupiah (Indodax, Pintu…), 'CRYPTO' = dalam USD
+  const lv = a.jenis === 'crypto' ? liveMap?.[a.symbol] : null;
+  const lvPrice = lv == null ? null : typeof lv === 'number' ? (a.currency === 'IDR' ? null : lv) : (a.currency === 'IDR' ? lv.idr : lv.usd);
+  if (lvPrice) { price = lvPrice; priceDate = today(); priceSrc = 'live'; }
   else if (lastPrice && (!lastTxn || lastPrice.tanggal >= lastTxn.tanggal)) { price = Number(lastPrice.harga); priceDate = lastPrice.tanggal; priceSrc = 'manual'; }
   else if (lastTxn) { price = Number(lastTxn.harga); priceDate = lastTxn.tanggal; priceSrc = 'transaksi'; }
   const fx = a.currency === 'IDR' ? 1 : usdIdr;
@@ -111,17 +114,18 @@ async function load() {
 
 // Harga crypto live dari CoinGecko (+ simpan sebagai harga hari ini supaya bisa dilihat saat offline / mode pantau)
 async function refreshLive(manual) {
-  const ids = [...new Set(assets.filter(a => a.currency === 'CRYPTO' && a.symbol).map(a => a.symbol))];
+  const ids = [...new Set(assets.filter(a => a.jenis === 'crypto' && a.symbol).map(a => a.symbol))];
   if (!ids.length) { if (manual) toast('Belum ada aset crypto. Harga saham/emas/reksa dana di-update manual lewat detail aset.'); return; }
   const btn = el.querySelector('#iv-refresh');
   btn.disabled = true; btn.textContent = '⏳ Memuat…';
   try {
-    live = await getCryptoUsd(ids);
+    live = await getCryptoPrices(ids);
     liveAt = new Date();
     if (!el.isConnected) return;
     if (!state.readOnly) {
-      const rows = assets.filter(a => a.currency === 'CRYPTO' && live[a.symbol])
-        .map(a => ({ investment_id: a.id, tanggal: today(), harga: live[a.symbol] }));
+      const rows = assets.filter(a => a.jenis === 'crypto' && live[a.symbol])
+        .map(a => ({ investment_id: a.id, tanggal: today(), harga: a.currency === 'IDR' ? live[a.symbol].idr : live[a.symbol].usd }))
+        .filter(r => r.harga);
       if (rows.length) await sb.from('invest_prices').upsert(rows, { onConflict: 'investment_id,tanggal' });
     }
     draw();
@@ -237,7 +241,7 @@ function openDetail(a) {
     <div class="form-actions" data-edit>
       <button class="btn btn-sm" data-act="beli">＋ Beli / tambah</button>
       ${p.units ? '<button class="btn btn-ghost btn-sm" data-act="jual">➖ Jual</button>' : ''}
-      ${a.currency !== 'CRYPTO' ? `<button class="btn btn-ghost btn-sm" data-act="price">✏️ Update ${a.jenis === 'deposito' ? 'nominal' : 'harga'}</button>` : ''}
+      ${a.jenis !== 'crypto' ? `<button class="btn btn-ghost btn-sm" data-act="price">✏️ Update ${a.jenis === 'deposito' ? 'nominal' : 'harga'}</button>` : ''}
       <button class="btn btn-ghost btn-sm" data-act="edit">⚙️ Edit aset</button>
     </div>
     <h3 class="sched-list-title">Riwayat transaksi</h3>
@@ -274,7 +278,7 @@ const showNum = n => n ? String(+Number(n).toFixed(8)).replace('.', ',') : '';
 function tradeForm(box, { jenis, currency, tipe = 'beli', price = null, maxUnits = 0, avg = 0 }) {
   const j = JENIS[jenis], assetCur = currency === 'IDR' ? 'IDR' : 'USD', assetLbl = assetCur === 'IDR' ? 'Rp' : '$';
   let mode = defaultMode(jenis, currency);
-  let ncur = jenis === 'crypto' || assetCur === 'IDR' ? 'IDR' : 'USD';   // crypto biasanya dibeli pakai Rupiah
+  let ncur = assetCur;   // crypto IDR (Indodax/Pintu) → Rupiah, crypto USD / saham US → Dollar
   let curPrice = price;
   const keep = {};
 
@@ -375,7 +379,8 @@ function openAsset(a = null) {
 
   const render = () => {
     const isCrypto = jenis === 'crypto', isDepo = jenis === 'deposito';
-    if (isCrypto) cur = 'CRYPTO'; else if (cur === 'CRYPTO') cur = 'IDR';
+    if (!isCrypto && cur === 'CRYPTO') cur = 'IDR';
+    if (isCrypto && cur === 'USD') cur = 'CRYPTO';
     const curLbl = cur === 'IDR' ? 'Rp' : '$';
     m.body.innerHTML = `
       <form class="sched-form" autocomplete="off">
@@ -388,7 +393,14 @@ function openAsset(a = null) {
           <div class="coin-results" id="coin-res"></div>
           <input type="hidden" name="symbol" value="${esc(a?.symbol || '')}">
           <input type="hidden" name="nama" value="${esc(a?.nama || '')}">
-          <p class="muted small" id="coin-sel">${a ? `Terpilih: <b>${esc(a.nama)}</b> (${esc(a.symbol)})` : 'Belum memilih koin.'}</p>` : `
+          <p class="muted small" id="coin-sel">${a ? `Terpilih: <b>${esc(a.nama)}</b> (${esc(a.symbol)})` : 'Belum memilih koin.'}</p>
+          <div class="field"><span class="field-label">Mata uang harga</span>
+            <div class="seg seg-full">
+              <button type="button" data-cur="IDR" class="${cur === 'IDR' ? 'active' : ''}">🇮🇩 IDR <small>Indodax, Pintu, Tokocrypto</small></button>
+              <button type="button" data-cur="CRYPTO" class="${cur === 'CRYPTO' ? 'active' : ''}">🇺🇸 USD <small>Binance, Bybit, dll.</small></button>
+            </div>
+            ${a && (txns.get(a.id) || []).length && cur !== a.currency ? `<p class="small amt-out" style="margin:6px 0 0">⚠️ ${(txns.get(a.id) || []).length} transaksi akan dikonversi ke ${cur === 'IDR' ? 'Rupiah' : 'Dollar'} pakai kurs hari ini ($1 = Rp ${Math.round(rate).toLocaleString('id-ID')}).</p>` : ''}
+          </div>` : `
           <div class="row">
             <label class="grow">Nama<input name="nama" required maxlength="60" value="${esc(a?.nama || '')}"
               placeholder="${{ saham: 'Contoh: Bank Central Asia', reksadana: 'Contoh: Sucorinvest Money Market', emas: 'Contoh: Emas Antam', deposito: 'Contoh: Deposito BCA 6 bulan', obligasi: 'Contoh: ORI025', lainnya: 'Nama aset' }[jenis]}"></label>
@@ -413,8 +425,18 @@ function openAsset(a = null) {
 
     const f = m.body.querySelector('form');
     f.querySelectorAll('[name=jenis]').forEach(r => r.onchange = () => { jenis = r.value; render(); });
-    f.querySelectorAll('[data-cur]').forEach(b => b.onclick = () => { cur = b.dataset.cur; render(); });
+    f.querySelectorAll('[data-cur]').forEach(b => b.onclick = () => {
+      const keepVals = { nama: f.nama?.value, symbol: f.symbol?.value, platform: f.platform.value, sel: f.querySelector('#coin-sel')?.innerHTML };
+      cur = b.dataset.cur; render();
+      const g = m.body.querySelector('form');
+      if (keepVals.nama != null && g.nama) g.nama.value = keepVals.nama;
+      if (keepVals.symbol != null && g.symbol) g.symbol.value = keepVals.symbol;
+      g.platform.value = keepVals.platform || '';
+      if (keepVals.sel && g.querySelector('#coin-sel')) g.querySelector('#coin-sel').innerHTML = keepVals.sel.replace(/ · Rp.*$/, '');
+      if (keepVals.symbol && jenis === 'crypto') getCryptoPrices([keepVals.symbol]).then(pr => { const x = pr[keepVals.symbol]; if (x) m.__tf?.setPrice(cur === 'IDR' ? x.idr : x.usd); }).catch(() => {});
+    });
     const tf = !a && !isDepo ? tradeForm(f.querySelector('#fb-box'), { jenis, currency: cur, tipe: 'beli' }) : null;
+    m.__tf = tf;
 
     if (isCrypto) {
       let timer;
@@ -435,8 +457,11 @@ function openAsset(a = null) {
               f.querySelector('#coin-sel').innerHTML = `Terpilih: <b>${esc(b.dataset.name)}</b> (${esc(b.dataset.id)})`;
               box.innerHTML = '';
               // Ambil harga sekarang supaya beli pakai nominal langsung terhitung
-              getCryptoUsd([b.dataset.id]).then(pr => {
-                if (pr[b.dataset.id]) { tf?.setPrice(pr[b.dataset.id]); f.querySelector('#coin-sel').innerHTML += ` · $${Number(pr[b.dataset.id]).toLocaleString('en-US')}`; }
+              getCryptoPrices([b.dataset.id]).then(pr => {
+                const x = pr[b.dataset.id];
+                if (!x) return;
+                tf?.setPrice(cur === 'IDR' ? x.idr : x.usd);
+                f.querySelector('#coin-sel').innerHTML += ` · Rp ${Number(x.idr).toLocaleString('id-ID')} / $${Number(x.usd).toLocaleString('en-US')}`;
               }).catch(() => {});
             });
           } catch { box.innerHTML = '<span class="muted small">Gagal mencari. Cek koneksi lalu coba lagi.</span>'; }
@@ -460,7 +485,24 @@ function openAsset(a = null) {
                   : sb.from('investments').insert(row).select().single();
       const { data, error } = await q;
       if (error) return toast('Gagal menyimpan: ' + error.message, 'error');
-      if (a) { Object.assign(a, data); m.close(); draw(); return; }
+      if (a) {
+        const old = a.currency, list = txns.get(a.id) || [];
+        const oldIdr = old === 'IDR', newIdr = data.currency === 'IDR';
+        if (oldIdr !== newIdr && (list.length || (prices.get(a.id) || []).length)) {
+          const k = newIdr ? rate : 1 / rate;   // USD→IDR dikali kurs, IDR→USD dibagi kurs
+          const res = await Promise.all([
+            ...list.map(t => sb.from('invest_txns').update({ harga: Number(t.harga) * k, fee: Number(t.fee || 0) * k }).eq('id', t.id)),
+            sb.from('invest_prices').delete().eq('investment_id', a.id)
+          ]);
+          if (res.some(r => r.error)) toast('Sebagian transaksi gagal dikonversi — cek riwayatnya', 'error');
+          list.forEach(t => { t.harga = Number(t.harga) * k; t.fee = Number(t.fee || 0) * k; });
+          prices.set(a.id, []);
+          toast(`Dikonversi ke ${newIdr ? 'Rupiah' : 'Dollar'} (kurs Rp ${Math.round(rate).toLocaleString('id-ID')})`);
+        }
+        Object.assign(a, data); m.close(); draw();
+        if (a.jenis === 'crypto') refreshLive(false);
+        return;
+      }
 
       assets.push(data);
       // Pembelian pertama

@@ -199,7 +199,7 @@ export function plan(data, prefsRaw, now) {
   // 10. Harga investasi belum diupdate (Minggu)
   if (P.invest.on && now.dow === 7 && dueAt(now, P.invest.time)) {
     const stale = [];
-    for (const a of (data.investments || []).filter(x => x.currency !== 'CRYPTO')) {
+    for (const a of (data.investments || []).filter(x => x.jenis !== 'crypto' && x.currency !== 'CRYPTO')) {   // crypto harganya live
       const tx = (data.investTxns || []).filter(t => t.investment_id === a.id);
       const units = tx.reduce((u, t) => u + (t.tipe === 'beli' ? 1 : -1) * Number(t.unit), 0);
       if (units <= 1e-9) continue;
@@ -311,7 +311,7 @@ async function loadUserData(uid, now) {
     q('fin_categories', 'id,nama,icon'),
     q('budgets').eq('bulan', now.date.slice(0, 7)),
     q('transactions', 'tipe,jumlah_idr,tanggal,category_id').gte('tanggal', prevMonthStart).limit(5000),
-    q('investments', 'id,nama,currency'),
+    q('investments', 'id,nama,currency,jenis'),
     q('invest_txns', 'investment_id,tipe,unit,tanggal').limit(5000),
     q('invest_prices', 'investment_id,tanggal').gte('tanggal', since).limit(5000),
     q('targets', 'id,judul,deadline,status,nilai_target,nilai_sekarang'),

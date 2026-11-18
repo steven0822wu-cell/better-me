@@ -893,3 +893,4 @@ body.read-only .txn { cursor: default; }
 .amt-input .ncur { border: 0; background: transparent; color: var(--muted); font-weight: 700; padding: 0 4px 0 0; cursor: pointer; }
 .trade-prev { margin: 4px 0 12px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); }
 .trade-prev:empty { display: none; }
+.seg-full button small { display: block; font-weight: 400; font-size: .68rem; opacity: .75; }

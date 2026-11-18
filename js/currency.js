@@ -22,6 +22,14 @@ export async function getUsdIdr() {
   return (usdIdr = data?.[0] ? Number(data[0].rate) : 16000); // fallback
 }
 
+// Harga crypto dari CoinGecko dalam USD & IDR. → { bitcoin: { usd, idr } }
+export async function getCryptoPrices(ids) {
+  if (!ids.length) return {};
+  const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd,idr`);
+  const j = await r.json();
+  return Object.fromEntries(Object.entries(j).map(([k, v]) => [k, { usd: v.usd, idr: v.idr }]));
+}
+
 // Harga crypto (USD) dari CoinGecko. ids: ['bitcoin','ethereum']
 export async function getCryptoUsd(ids) {
   if (!ids.length) return {};
