@@ -24,7 +24,8 @@ create table if not exists salary_slips (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null default auth.uid() references profiles(id) on delete cascade,
   bulan         text not null check (bulan ~ '^\d{4}-\d{2}$'),        -- YYYY-MM
-  items         jsonb not null default '[]'::jsonb,                  -- per kelas: tarif, murid, pertemuan, bagi hasil, hasil
+  items         jsonb not null default '[]'::jsonb,                  -- baris tabel: grup, nama, jadwal, price, pct, qty, pot
+  sections      jsonb not null default '[]'::jsonb,                  -- bagian tabel: [{nama, mode}]
   potongan_pct  numeric(5,2) not null default 0 check (potongan_pct between 0 and 100),
   potongan      jsonb not null default '[]'::jsonb,                  -- [{nama, jumlah}]
   tambahan      jsonb not null default '[]'::jsonb,                  -- [{nama, jumlah}] bonus, transport, dll.
