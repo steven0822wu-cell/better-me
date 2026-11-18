@@ -894,3 +894,55 @@ body.read-only .txn { cursor: default; }
 .trade-prev { margin: 4px 0 12px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); }
 .trade-prev:empty { display: none; }
 .seg-full button small { display: block; font-weight: 400; font-size: .68rem; opacity: .75; }
+
+/* =========================================================
+   GAJI MENGAJAR
+   ========================================================= */
+.sal-card:empty { display: none; }
+.sal-top { display: grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap: 18px; align-items: start; margin-top: 6px; }
+.sal-net { display: flex; flex-direction: column; gap: 2px; padding: 14px; border-radius: var(--radius);
+  background: color-mix(in srgb, var(--success) 12%, var(--surface-2)); border-left: 4px solid var(--success); }
+.sal-net b { font: var(--head-weight) 1.6rem var(--font-head); }
+.sal-flow { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sal-flow li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--border); font-size: .9rem; }
+.sal-flow li.minus b { color: var(--danger); }
+.sal-flow li.plus b { color: var(--success); }
+.sal-detail { margin-top: 12px; }
+.sal-detail summary { cursor: pointer; padding: 4px 0; }
+.sal-detail .link-btn { margin-top: 8px; }
+.sal-empty { padding: 20px; }
+.sal-hist { margin-top: 16px; }
+.sal-bars { display: flex; gap: 8px; align-items: flex-end; margin-top: 6px; }
+.sal-bar { flex: 1; max-width: 70px; display: flex; flex-direction: column; align-items: center; gap: 3px; border: 0; background: none;
+  color: var(--text); cursor: pointer; padding: 4px 0; border-radius: 8px; font-family: var(--font-body); }
+.sal-bar i { width: 60%; border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--primary) 55%, var(--surface-2)); }
+.sal-bar.on i { background: var(--primary); }
+.sal-bar:hover { background: var(--surface-2); }
+.sal-bar-v { font-size: .68rem; font-weight: 700; }
+.sal-bar small { font-size: .68rem; color: var(--muted); }
+
+.sal-items { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+.sal-item { padding: 10px 12px; border-radius: var(--radius); background: var(--surface-2); }
+.sal-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.sal-item-head b { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.sal-item-head .icon-btn.sm { margin-left: 0; }
+.sal-inputs { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.sal-inputs label { margin: 0; flex: 1 1 90px; max-width: 130px; font-size: .78rem; }
+.sal-inputs input { padding: 7px 8px; background: var(--surface); }
+.sal-res { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; }
+.sal-pct input { max-width: 120px; }
+.sal-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.sal-li { display: flex; gap: 8px; align-items: center; }
+.sal-li > input { flex: 1; min-width: 0; }
+.sal-li .icon-btn.sm { margin-left: 0; }
+.sal-sum { margin: 14px 0; padding: 12px 14px; border-radius: var(--radius); background: var(--surface-2); display: flex; flex-direction: column; gap: 4px; font-size: .9rem; }
+.sal-sum > div { display: flex; justify-content: space-between; }
+.sal-sum .minus b { color: var(--danger); }
+.sal-sum .plus b { color: var(--success); }
+.sal-total { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; font-size: 1.05rem; }
+.sal-total b { font: var(--head-weight) 1.25rem var(--font-head); color: var(--success); }
+@media (max-width: 860px) {
+  .sal-top { grid-template-columns: 1fr; }
+  .sal-inputs label { flex: 1 1 80px; }
+  .sal-res { flex-basis: 100%; flex-direction: row; justify-content: space-between; }
+}

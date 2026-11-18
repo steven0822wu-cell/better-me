@@ -5,6 +5,7 @@ import { sticker } from '../fx.js';
 import { fetchAll } from '../db.js';
 import { money } from '../currency.js';
 import { today, relLabel, fmtShort, parse, ymd } from '../date.js';
+import { createSalary } from './salary.js';
 
 export const ACC_TYPES = { cash: ['💵', 'Cash'], bank: ['🏦', 'Bank'], ewallet: ['📱', 'E-wallet'], lainnya: ['💳', 'Lainnya'] };
 const CAT_ICONS = ['🍜', '☕', '🛒', '🚗', '⛽', '🏠', '💡', '📱', '🎬', '🎮', '👕', '💊', '📚', '🎁', '✈️', '🐶', '💇', '🧾', '💼', '🏫', '📈', '💰', '🎉', '🔧'];
@@ -19,7 +20,7 @@ const DEFAULT_CATS = [
 const BULAN = m => parse(m + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 const shiftMonth = (m, n) => { const d = parse(m + '-01'); d.setMonth(d.getMonth() + n); return ymd(d).slice(0, 7); };
 
-let el, month = today().slice(0, 7);
+let el, salary, month = today().slice(0, 7);
 let accounts = [], cats = [], txns = [], budgets = [];
 let filter = { tipe: 'all', q: '', cat: null };
 
@@ -86,6 +87,7 @@ export default {
         <section class="card" id="fn-cat"></section>
         <section class="card" id="fn-budget"></section>
       </div>
+      <section class="card sal-card" id="fn-salary"></section>
       <section class="card" id="fn-list"></section>
       <button class="fab" id="fn-fab" data-edit aria-label="Tambah transaksi">＋</button>`;
 
@@ -93,6 +95,7 @@ export default {
     el.querySelector('#fn-next').onclick = () => { month = shiftMonth(month, 1); draw(); };
     el.querySelector('#fn-add').onclick = () => openTxn();
     el.querySelector('#fn-fab').onclick = () => openTxn();
+    salary = createSalary(el.querySelector('#fn-salary'), { onMonth: m => { month = m; draw(); } });
     await load();
   }
 };
@@ -125,6 +128,7 @@ function draw() {
   el.querySelector('#fn-month').textContent = BULAN(month);
   el.querySelector('#fn-next').disabled = month >= today().slice(0, 7);
   drawSummary(); drawAccounts(); drawCategories(); drawBudget(); drawList();
+  salary?.show(month);
 }
 
 function drawSummary() {
