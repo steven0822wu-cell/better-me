@@ -21,10 +21,31 @@ export const TIPE = {
 };
 const GYM_METRIC = { sesi: 'sesi', menit: 'menit', km: 'km' };
 
-let el, targets = [], tab = 'aktif', src = {};
+let el, targets = [], tab = 'aktif', src = {}, year = null;   // year: 'all' atau '2026'
 const fmt = n => money(n, state.me?.currency_view);
 const isMoney = t => ['finance', 'invest'].includes(t.tipe_progress) || (t.tipe_progress === 'manual' && /^rp$/i.test(t.satuan || ''));
 const fmtVal = (t, v) => isMoney(t) ? fmt(v) : `${Number(v).toLocaleString('id-ID', { maximumFractionDigits: 2 })}${t.satuan ? ' ' + t.satuan : ''}`;
+
+// ---------- Tahun berlaku ----------
+// Target berlaku dari tahun mulai s/d tahun deadline (bisa bertahun-tahun).
+// Tanpa deadline: s/d tahun tercapai, atau terus berjalan kalau masih aktif.
+const Y = d => d ? Number(String(d).slice(0, 4)) : null;
+const fmtD = d => fmtShort(d) + (Y(d) !== Y(today()) ? ' ' + Y(d) : '');   // tambah tahun kalau bukan tahun ini
+function span(t) {
+  const a = Y(t.mulai) || Y(today());
+  const b = Y(t.deadline) ?? (t.status === 'tercapai' ? Y(t.tercapai_at) : null);
+  return [a, b && b >= a ? b : (b ? a : Infinity)];
+}
+const inYear = t => { if (year === 'all') return true; const [a, b] = span(t), y = Number(year); return a <= y && y <= b; };
+function spanLabel(t) {
+  const [a, b] = span(t);
+  return b === Infinity ? `📅 Sejak ${a}` : a === b ? `📅 ${a}` : `📅 ${a}–${b} · ${b - a + 1} thn`;
+}
+function yearOptions() {
+  const now = Y(today()), ys = new Set([now]);
+  targets.forEach(t => { const [a, b] = span(t); const end = b === Infinity ? Math.max(a, now) : b; for (let y = a; y <= end && y - a < 50; y++) ys.add(y); });
+  return [...ys].sort((x, z) => z - x);
+}
 
 // ---------- Hitung progres ----------
 function current(t) {
@@ -87,10 +108,12 @@ export default {
         <button class="btn" id="tg-add" data-edit>＋ Target</button>
       </header>
       <div class="grid fn-sum" id="tg-sum"></div>
-      <div class="ws-bar"><div class="seg" id="tg-tabs"></div></div>
+      <div class="ws-bar"><div class="seg" id="tg-tabs"></div>
+        <label class="tg-year">📅 <select id="tg-year" aria-label="Pilih tahun"></select></label></div>
       <div class="tg-grid" id="tg-list"></div>`;
     el.querySelector('#tg-add').onclick = () => openForm();
     el.querySelector('#tg-list').onclick = onClick;
+    el.querySelector('#tg-year').onchange = e => { year = e.target.value; draw(); };
     await load();
   }
 };
@@ -160,21 +183,28 @@ async function syncStored() {
 
 function draw() {
   el.querySelector('#tg-title').textContent = state.readOnly ? `Target ${state.viewing.display_name}` : 'Target';
+  if (!year) year = String(Y(today()));
+  const sel = el.querySelector('#tg-year');
+  sel.innerHTML = yearOptions().map(y => `<option value="${y}">${y}${y === Y(today()) ? ' (sekarang)' : ''}</option>`).join('')
+    + '<option value="all">Semua tahun</option>';
+  if (![...sel.options].some(o => o.value === year)) year = String(Y(today()));
+  sel.value = year;
   drawSummary(); drawTabs(); drawList();
 }
 
 function drawSummary() {
-  const act = targets.filter(t => t.status === 'aktif');
+  const inY = targets.filter(inYear);
+  const act = inY.filter(t => t.status === 'aktif');
   const avg = act.length ? act.reduce((s, t) => s + prog(t).pct, 0) / act.length : 0;
-  const year = today().slice(0, 4);
-  const done = targets.filter(t => t.status === 'tercapai' && (t.tercapai_at || '').startsWith(year)).length;
+  const done = inY.filter(t => t.status === 'tercapai').length;
+  const yl = year === 'all' ? '(semua)' : year;
   const next = act.filter(t => t.deadline && t.deadline >= today()).sort((a, b) => a.deadline.localeCompare(b.deadline))[0];
   const behind = act.filter(t => { const p = prog(t).pace; return p && p.diff < -10; }).length;
   const tiles = [
-    ['🎯', 'Target aktif', act.length, behind ? `<small class="amt-out">⚠️ ${behind} tertinggal</small>` : act.length ? '<small class="amt-in">Semua on track</small>' : ''],
+    ['🎯', `Target aktif ${yl}`, act.length, behind ? `<small class="amt-out">⚠️ ${behind} tertinggal</small>` : act.length ? '<small class="amt-in">Semua on track</small>' : ''],
     ['📊', 'Rata-rata progres', Math.round(avg) + '%', `<div class="progress progress-sm"><i style="width:${avg}%"></i></div>`],
-    ['🏆', `Tercapai ${year}`, done, ''],
-    ['⏰', 'Deadline terdekat', next ? fmtShort(next.deadline) : '–', next ? `<small class="muted">${esc(next.judul)}</small>` : '']
+    ['🏆', `Tercapai ${yl}`, done, ''],
+    ['⏰', 'Deadline terdekat', next ? fmtD(next.deadline) : '–', next ? `<small class="muted">${esc(next.judul)}</small>` : '']
   ];
   el.querySelector('#tg-sum').innerHTML = tiles.map(([i, l, v, x], k) => `
     <div class="card tile" style="--i:${k}"><span class="tile-icon">${i}</span><span class="tile-label">${l}</span>
@@ -182,7 +212,7 @@ function drawSummary() {
 }
 
 function drawTabs() {
-  const n = s => targets.filter(t => t.status === s).length;
+  const n = s => targets.filter(t => t.status === s && inYear(t)).length;
   const box = el.querySelector('#tg-tabs');
   box.innerHTML = [['aktif', '🎯 Aktif'], ['tercapai', '🏆 Tercapai'], ['batal', '🗃️ Arsip']].map(([k, l]) =>
     `<button class="${tab === k ? 'active' : ''}" data-tab="${k}">${l} (${n(k)})</button>`).join('');
@@ -190,11 +220,12 @@ function drawTabs() {
 }
 
 function drawList() {
-  const list = targets.filter(t => t.status === tab);
+  const list = targets.filter(t => t.status === tab && inYear(t));
   const box = el.querySelector('#tg-list');
   if (!list.length) {
     box.innerHTML = `<div class="card empty ws-empty"><div class="empty-icon">${tab === 'tercapai' ? '🏆' : persona().mascot}</div>
-      <p class="muted">${tab === 'aktif' ? (state.readOnly ? 'Belum ada target aktif.' : 'Belum ada target. Tulis satu tujuan besar — lalu biarkan progresnya terisi otomatis dari modul lain.')
+      <p class="muted">${tab === 'aktif' && year !== 'all' && targets.some(t => t.status === 'aktif') ? `Tidak ada target aktif di tahun ${year}.`
+        : tab === 'aktif' ? (state.readOnly ? 'Belum ada target aktif.' : 'Belum ada target. Tulis satu tujuan besar — lalu biarkan progresnya terisi otomatis dari modul lain.')
         : tab === 'tercapai' ? 'Belum ada target yang tercapai. Pasti segera!' : 'Arsip kosong.'}</p></div>`;
     return;
   }
@@ -223,7 +254,7 @@ function card(t, i) {
         <div class="ring tg-ring" style="--pct:${p.pct}"><span>${Math.floor(p.pct)}%</span></div>
         <div class="tg-head">
           <button class="tg-name" data-act="detail">${esc(t.icon)} ${esc(t.judul)}</button>
-          <div class="tg-tags"><span class="pill">${esc(t.kategori || 'Lainnya')}</span><span class="muted small">${tp.icon} ${tp.label}</span></div>
+          <div class="tg-tags"><span class="pill">${esc(t.kategori || 'Lainnya')}</span><span class="pill tg-span">${spanLabel(t)}</span><span class="muted small">${tp.icon} ${tp.label}</span></div>
         </div>
       </div>
       <div class="tg-val">
@@ -231,7 +262,7 @@ function card(t, i) {
         ${t.tipe_progress !== 'milestone' && p.target ? `<span class="muted">dari ${fmtVal(t, p.target)}</span>` : ''}
       </div>
       <div class="progress"><i style="width:${p.pct}%"></i></div>
-      ${t.status === 'tercapai' ? `<div class="tg-pace ok"><span>🏆 Tercapai</span><small>${t.tercapai_at ? fmtShort(t.tercapai_at.slice(0, 10)) : ''}</small></div>` : paceHtml}
+      ${t.status === 'tercapai' ? `<div class="tg-pace ok"><span>🏆 Tercapai</span><small>${t.tercapai_at ? fmtD(t.tercapai_at.slice(0, 10)) : ''}</small></div>` : paceHtml}
       ${t.tipe_progress === 'milestone' && ms.length ? `
         <ul class="tg-ms">${ms.slice(0, 4).map(m => `
           <li><label class="${m.done ? 'done' : ''}"><input type="checkbox" data-ms="${esc(m.id)}" ${m.done ? 'checked' : ''} ${state.readOnly || t.status !== 'aktif' ? 'disabled' : ''}>
@@ -325,9 +356,12 @@ async function openForm(t = null) {
         <label>Target kamu<input name="judul" required maxlength="80" placeholder="Contoh: Dana darurat 50 juta, Lulus HSK 4, Turun 5 kg" value="${esc(keep?.judul ?? t?.judul ?? '')}"></label>
         <div class="row">
           <label>Kategori<select name="kategori">${KATEGORI.map(k => `<option ${k === (keep?.kategori ?? t?.kategori ?? 'Pribadi') ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
-          <label>Mulai<input type="date" name="mulai" required value="${keep?.mulai ?? t?.mulai ?? today()}"></label>
+          <label>Mulai<input type="date" name="mulai" required value="${keep?.mulai ?? t?.mulai ?? defaultStart()}"></label>
           <label><span>Deadline <small class="muted">(opsional)</small></span><input type="date" name="deadline" value="${keep?.deadline ?? t?.deadline ?? ''}"></label>
         </div>
+        <div class="tg-dur"><span class="muted small">Jangka waktu:</span>
+          ${[1, 2, 3, 5, 10].map(n => `<button type="button" class="chip" data-yrs="${n}"><span>${n} thn</span></button>`).join('')}
+          <span class="muted small" id="tg-dur-l"></span></div>
 
         <div class="field"><span class="field-label">Cara mengukur progres</span>
           <div class="tipe-grid">${Object.entries(TIPE).map(([k, v]) => `
@@ -414,6 +448,17 @@ async function openForm(t = null) {
   const bindForm = () => {
     const f = m.body.querySelector('form');
     f.querySelectorAll('[name=tipe]').forEach(r => r.onchange = () => { tipe = r.value; render(); });
+    // Tombol jangka waktu: deadline = 31 Des tahun ke-n (dihitung dari tahun mulai)
+    const durLbl = () => {
+      const a = Y(f.mulai.value), b = Y(f.deadline.value);
+      f.querySelector('#tg-dur-l').textContent = a && b && b >= a ? `→ berlaku ${a === b ? a : a + '–' + b} (${b - a + 1} tahun)` : f.deadline.value ? '' : '→ tanpa batas waktu';
+      f.querySelectorAll('[data-yrs]').forEach(c => c.classList.toggle('active', !!(a && b && f.deadline.value.endsWith('-12-31') && b - a + 1 === +c.dataset.yrs)));
+    };
+    f.querySelectorAll('[data-yrs]').forEach(c => c.onclick = () => {
+      const a = Y(f.mulai.value) || Y(today());
+      f.deadline.value = `${a + Number(c.dataset.yrs) - 1}-12-31`; durLbl();
+    });
+    f.mulai.addEventListener('input', durLbl); f.deadline.addEventListener('input', durLbl); durLbl();
     f.querySelector('[data-act=add-ms]')?.addEventListener('click', () => {
       syncMs(); milestones.push({ id: crypto.randomUUID().slice(0, 8), judul: '', done: false });
       render(); m.body.querySelector('.ms-row:last-child [data-f=judul]')?.focus();
@@ -502,7 +547,7 @@ function openDetail(t) {
       <div class="stat"><b>${Math.floor(p.pct)}%</b><span>Progres</span></div>
       <div class="stat"><b>${t.tipe_progress === 'milestone' ? `${p.cur}/${p.target}` : fmtVal(t, p.cur)}</b><span>${t.tipe_progress === 'milestone' ? 'Langkah selesai' : 'Sekarang'}</span></div>
       <div class="stat"><b>${t.tipe_progress === 'milestone' ? p.target : fmtVal(t, p.target)}</b><span>Target</span></div>
-      <div class="stat"><b>${t.deadline ? (p.pace ? (p.pace.left >= 0 ? p.pace.left + ' hari' : 'Lewat') : fmtShort(t.deadline)) : '–'}</b><span>${t.deadline ? 'Sisa waktu · ' + fmtShort(t.deadline) : 'Tanpa deadline'}</span></div>
+      <div class="stat"><b>${t.deadline ? (p.pace ? (p.pace.left >= 0 ? p.pace.left + ' hari' : 'Lewat') : fmtD(t.deadline)) : '–'}</b><span>${t.deadline ? 'Sisa waktu · ' + fmtD(t.deadline) : 'Tanpa deadline'}</span></div>
     </div>
     <p class="muted small">${esc(t.kategori || '')} · ${tp.icon} ${tp.label} · mulai ${fmtShort(t.mulai)}</p>
     ${p.pace && t.status === 'aktif' ? `<div class="pace-bar"><div class="progress"><i style="width:${p.pct}%"></i></div>
@@ -516,4 +561,8 @@ function openDetail(t) {
     </div>`;
   m.body.querySelector('[data-act=update]')?.addEventListener('click', () => { m.close(); openUpdate(t); });
   m.body.querySelector('[data-act=edit]').onclick = () => { m.close(); openForm(t); };
+}
+
+function defaultStart() {
+  return year !== 'all' && Number(year) > Y(today()) ? `${year}-01-01` : today();
 }
