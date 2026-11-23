@@ -1,5 +1,5 @@
 // Service worker: cache aset statis + terima notifikasi push
-const CACHE = 'bm-v19';
+const CACHE = 'bm-v20';
 const ASSETS = [
   'index.html', 'app.html', 'css/base.css', 'css/themes.css', 'css/fx.css', 'icon.svg', 'manifest.json',
   'icons/icon-192.png', 'icons/badge-96.png',

@@ -44,6 +44,7 @@ export default {
       <div id="td-sched"></div>
 
       <form class="card td-add" id="td-form" data-edit autocomplete="off">
+        <input name="no" class="td-no-in" type="number" min="1" max="99" inputmode="numeric" placeholder="No." title="Nomor urutan (opsional)">
         <input name="judul" placeholder="Tambah tugas… (Enter)" maxlength="200" required>
         <div class="pri-pick" role="radiogroup" aria-label="Prioritas">
           ${[1, 2, 3].map(p => `
@@ -54,6 +55,7 @@ export default {
       </form>
 
       <section id="td-overdue"></section>
+      <div class="td-tools" id="td-tools" data-edit></div>
       <ul class="todo-list" id="td-list"></ul>
 
       <div id="td-grid"></div>`;
@@ -117,6 +119,7 @@ function draw() {
   drawOverdue();
 
   sortItems();
+  drawTools();
   const list = el.querySelector('#td-list');
   list.innerHTML = items.length
     ? items.map(itemHtml).join('')
@@ -127,7 +130,8 @@ function draw() {
 }
 
 function sortItems() {
-  items.sort((x, y) => (x.done - y.done) || (x.prioritas - y.prioritas) ||
+  const no = t => t.urutan || 999;
+  items.sort((x, y) => (x.done - y.done) || (no(x) - no(y)) || (x.prioritas - y.prioritas) ||
     (x.created_at < y.created_at ? -1 : 1));
 }
 
@@ -136,6 +140,8 @@ function itemHtml(t) {
     <li class="todo-item pri-${t.prioritas} ${t.done ? 'done' : ''}" data-id="${t.id}">
       <button class="todo-check" data-act="toggle" ${state.readOnly ? 'disabled' : ''}
         aria-label="${t.done ? 'Tandai belum selesai' : 'Tandai selesai'}"><span>✓</span></button>
+      <button class="todo-no ${t.urutan && !t.done ? 'set' : ''}" data-act="no" ${state.readOnly || t.done ? 'disabled' : ''}
+        title="${t.done ? '' : t.urutan ? 'Urutan ke-' + t.urutan + ' — klik untuk ubah' : 'Beri nomor urutan'}">${t.urutan && !t.done ? t.urutan : '#'}</button>
       <span class="todo-title">${esc(t.judul)}</span>
       <button class="todo-pri" data-act="pri" ${state.readOnly ? 'disabled' : ''} title="Ganti prioritas">
         ${PRI[t.prioritas].icon} ${PRI[t.prioritas].label}</button>
@@ -211,12 +217,15 @@ async function onAdd(e) {
   const judul = f.judul.value.trim();
   if (!judul) return;
   const prioritas = Number(f.pri.value);
+  const urutan = Math.min(99, Math.max(0, parseInt(f.no.value) || 0)) || null;
   f.judul.value = '';
+  f.no.value = '';
   f.judul.focus();
 
-  const { data, error } = await sb.from('todos')
-    .insert({ judul, prioritas, tanggal: cur }).select().single();
-  if (error) { f.judul.value = judul; return toast('Gagal menambah: ' + error.message, 'error'); }
+  const row = { judul, prioritas, tanggal: cur };
+  if (urutan) { row.urutan = urutan; await makeRoom(urutan, null); }
+  const { data, error } = await sb.from('todos').insert(row).select().single();
+  if (error) { f.judul.value = judul; return toast('Gagal menambah: ' + noHint(error.message), 'error'); }
   items.push(data);
   week.push({ tanggal: cur, done: false });
   draw();
@@ -234,6 +243,7 @@ async function onListClick(e) {
   switch (btn.dataset.act) {
     case 'toggle': return toggle(t, btn);
     case 'pri':    return update(t, { prioritas: t.prioritas % 3 + 1 });
+    case 'no':     return editNumber(t, btn);
     case 'edit':   return startEdit(t, li);
     case 'move':   return moveTo(t, addDays(cur, 1), 'Dipindah ke besok ⏭️');
     case 'del':    return remove(t);
@@ -298,7 +308,7 @@ function startEdit(t, li) {
 }
 
 async function moveTo(t, tanggal, msg) {
-  const { error } = await sb.from('todos').update({ tanggal }).eq('id', t.id);
+  const { error } = await sb.from('todos').update({ tanggal, ...('urutan' in t ? { urutan: null } : {}) }).eq('id', t.id);
   if (error) return toast('Gagal memindah: ' + error.message, 'error');
   toast(msg);
   load();
@@ -356,4 +366,72 @@ async function onOverdueClick(e) {
 function syncWeek(tanggal) {
   week = week.filter(w => w.tanggal !== tanggal)
     .concat(items.filter(i => i.tanggal === tanggal).map(i => ({ tanggal, done: i.done })));
+}
+
+// ---------- Nomor urutan pengerjaan ----------
+const noHint = msg => /urutan|schema cache|column/i.test(msg) ? 'jalankan dulu 10_todo_urutan.sql di Supabase' : msg;
+
+function drawTools() {
+  const box = el.querySelector('#td-tools');
+  const open = items.filter(i => !i.done);
+  const numbered = open.filter(i => i.urutan).length;
+  box.innerHTML = open.length > 1 ? `
+    <button class="link-btn" data-tool="auto">🔢 Beri nomor otomatis (${open.length} tugas)</button>
+    ${numbered ? '<button class="link-btn" data-tool="clear">Hapus semua nomor</button>' : ''}
+    <span class="muted small">Tip: klik kotak <b>#</b> di tugas untuk memberi nomor urutan pengerjaan.</span>` : '';
+  box.querySelectorAll('[data-tool]').forEach(b => b.onclick = () => b.dataset.tool === 'auto' ? autoNumber() : clearNumbers());
+}
+
+// Kalau nomor n sudah dipakai, geser tugas bernomor ≥ n satu langkah ke bawah
+async function makeRoom(n, exceptId) {
+  const taken = items.some(i => !i.done && i.id !== exceptId && i.urutan === n);
+  if (!taken) return;
+  const shift = items.filter(i => !i.done && i.id !== exceptId && i.urutan >= n).sort((a, b) => b.urutan - a.urutan);
+  for (const i of shift) {
+    const v = Math.min(99, i.urutan + 1);
+    const { error } = await sb.from('todos').update({ urutan: v }).eq('id', i.id);
+    if (!error) i.urutan = v;
+  }
+}
+
+function editNumber(t, btn) {
+  const input = document.createElement('input');
+  input.type = 'number'; input.min = 1; input.max = 99; input.className = 'todo-no-edit';
+  input.value = t.urutan || (Math.max(0, ...items.filter(i => !i.done && i.urutan).map(i => i.urutan)) + 1);
+  btn.replaceWith(input);
+  input.focus(); input.select();
+  let done = false;
+  const finish = async save => {
+    if (done) return; done = true;
+    if (!save) return draw();
+    const n = Math.min(99, Math.max(0, parseInt(input.value) || 0)) || null;
+    if (n === (t.urutan || null)) return draw();
+    if (n) await makeRoom(n, t.id);
+    const { error } = await sb.from('todos').update({ urutan: n }).eq('id', t.id);
+    if (error) { draw(); return toast('Gagal menyimpan nomor: ' + noHint(error.message), 'error'); }
+    t.urutan = n;
+    draw();
+    el.querySelector(`[data-id="${t.id}"]`)?.classList.add('pop-in');
+  };
+  input.onkeydown = e => { if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); };
+  input.onblur = () => finish(true);
+}
+
+async function autoNumber() {
+  try { assertCanEdit(); } catch (err) { return toast(err.message, 'error'); }
+  const open = items.filter(i => !i.done);      // urutan tampilan sekarang: bernomor → prioritas
+  const res = await Promise.all(open.map((i, k) => sb.from('todos').update({ urutan: k + 1 }).eq('id', i.id)));
+  const err = res.find(r => r.error);
+  if (err) return toast('Gagal memberi nomor: ' + noHint(err.error.message), 'error');
+  open.forEach((i, k) => i.urutan = k + 1);
+  draw(); sticker('🔢 Urutan siap!');
+}
+
+async function clearNumbers() {
+  try { assertCanEdit(); } catch (err) { return toast(err.message, 'error'); }
+  const ids = items.filter(i => i.urutan).map(i => i.id);
+  const { error } = await sb.from('todos').update({ urutan: null }).in('id', ids);
+  if (error) return toast(error.message, 'error');
+  items.forEach(i => i.urutan = null);
+  draw();
 }

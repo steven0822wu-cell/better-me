@@ -273,6 +273,18 @@ body.loading .loader { display: grid; place-items: center; position: fixed; inse
 .todo-pri { border: 0; background: var(--surface-2); color: var(--muted); font: 600 .75rem var(--font-body);
   padding: 4px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
 .todo-pri:disabled { cursor: default; }
+.todo-no { flex: none; width: 30px; height: 30px; border-radius: 9px; border: 1.5px dashed var(--border); background: transparent;
+  color: var(--muted); font: 800 .85rem var(--font-body); cursor: pointer; padding: 0; transition: .15s; }
+.todo-no:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.todo-no.set { border: 0; background: var(--primary); color: var(--primary-text, #fff);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 35%, transparent); }
+.todo-no:disabled:not(.set) { visibility: hidden; }
+.todo-no:disabled { cursor: default; }
+
+.todo-no-edit { flex: none; width: 56px; padding: 5px 6px; text-align: center; font-weight: 700; }
+.td-no-in { flex: 0 0 68px; width: 68px; text-align: center; }
+.td-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0 0 8px; }
+.td-tools:empty { display: none; }
 .todo-actions { display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
 .todo-item:hover .todo-actions, .todo-item:focus-within .todo-actions { opacity: 1; }
 .todo-actions .icon-btn { width: 30px; height: 30px; font-size: .85rem; }
@@ -296,12 +308,14 @@ body.loading .loader { display: grid; place-items: center; position: fixed; inse
   .day { padding: 8px 2px; }
   .day-num { font-size: 1.05rem; }
   .td-add .btn { flex: 1; }
+  .td-add input[name="judul"] { flex: 1 1 0; min-width: 0; }
+  .td-no-in { flex-basis: 64px; width: 64px; padding-left: 6px; padding-right: 6px; }
   .pri-pick { flex: 1 1 100%; }
   .pri-opt { flex: 1; }
   .pri-opt span { width: 100%; text-align: center; }
   .todo-actions { opacity: 1; }
   .todo-item { flex-wrap: wrap; }
-  .todo-title { flex: 1 1 calc(100% - 44px); }
+  .todo-title { flex: 1 1 calc(100% - 84px); }
   .todo-pri { margin-left: 40px; }
   .todo-actions { margin-left: auto; }
 }

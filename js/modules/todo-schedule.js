@@ -306,7 +306,10 @@ export function createSchedule(container, { gridContainer, onChange } = {}) {
     if (!active.length) { gridContainer.innerHTML = ''; return; }
 
     const toMin = t => { const [h, m] = hhmm(t).split(':').map(Number); return h * 60 + m; };
-    const endMin = s => s.jam_selesai ? toMin(s.jam_selesai) : toMin(s.jam_mulai) + 60;
+    const endMin = s => {                      // lewat tengah malam → dipotong di 24:00
+      const a = toMin(s.jam_mulai), b = s.jam_selesai ? toMin(s.jam_selesai) : a + 60;
+      return Math.min(24 * 60, b > a ? b : 24 * 60);
+    };
     let startH = Math.min(...active.map(s => Math.floor(toMin(s.jam_mulai) / 60)));
     let endH = Math.max(...active.map(s => Math.ceil(endMin(s) / 60)));
     startH = Math.max(0, startH);
