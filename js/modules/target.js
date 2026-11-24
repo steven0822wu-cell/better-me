@@ -10,7 +10,17 @@ import { position } from './invest.js';
 
 const ICONS = ['🎯', '💰', '🏠', '🚗', '✈️', '🎓', '📚', '🀄', '💪', '🏃', '⚖️', '❤️', '💼', '🧘', '🎸', '🌱', '🏆', '💍', '👶', '🙏'];
 const COLORS = ['#7c9cff', '#2f9e44', '#f59f00', '#e62429', '#b08d57', '#ff2bd6', '#00b8d9', '#845ef7'];
-const KATEGORI = ['Keuangan', 'Kesehatan', 'Karier & Bisnis', 'Belajar', 'Pribadi', 'Keluarga & Relasi', 'Spiritual', 'Lainnya'];
+// Kategori = jenis target. Nama lama otomatis dibaca ke kategori baru.
+const KAT = [
+  { k: 'Keuangan & Investasi', icon: '💰' },
+  { k: 'Belajar', icon: '📚' },
+  { k: 'Pekerjaan', icon: '💼' },
+  { k: 'Lainnya', icon: '✨' },
+];
+const KATEGORI = KAT.map(x => x.k);
+const KAT_LAMA = { 'Keuangan': 'Keuangan & Investasi', 'Investasi': 'Keuangan & Investasi', 'Karier & Bisnis': 'Pekerjaan', 'Karier': 'Pekerjaan', 'Bisnis': 'Pekerjaan' };
+const katOf = t => { const k = t.kategori || ''; return KATEGORI.includes(k) ? k : KAT_LAMA[k] || 'Lainnya'; };
+const katIcon = k => KAT.find(x => x.k === k)?.icon || '✨';
 export const TIPE = {
   manual:    { icon: '✍️', label: 'Angka manual',     desc: 'Update angkanya sendiri (berat badan, jumlah buku, dll.)' },
   milestone: { icon: '☑️', label: 'Checklist langkah', desc: 'Pecah jadi langkah-langkah, progres = langkah selesai' },
@@ -21,7 +31,7 @@ export const TIPE = {
 };
 const GYM_METRIC = { sesi: 'sesi', menit: 'menit', km: 'km' };
 
-let el, targets = [], tab = 'aktif', src = {}, year = null;   // year: 'all' atau '2026'
+let el, targets = [], tab = 'aktif', src = {}, year = null, kat = 'all';   // year: 'all' atau '2026'
 const fmt = n => money(n, state.me?.currency_view);
 const isMoney = t => ['finance', 'invest'].includes(t.tipe_progress) || (t.tipe_progress === 'manual' && /^rp$/i.test(t.satuan || ''));
 const fmtVal = (t, v) => isMoney(t) ? fmt(v) : `${Number(v).toLocaleString('id-ID', { maximumFractionDigits: 2 })}${t.satuan ? ' ' + t.satuan : ''}`;
@@ -36,6 +46,7 @@ function span(t) {
   const b = Y(t.deadline) ?? (t.status === 'tercapai' ? Y(t.tercapai_at) : null);
   return [a, b && b >= a ? b : (b ? a : Infinity)];
 }
+const inKat = t => kat === 'all' || katOf(t) === kat;
 const inYear = t => { if (year === 'all') return true; const [a, b] = span(t), y = Number(year); return a <= y && y <= b; };
 function spanLabel(t) {
   const [a, b] = span(t);
@@ -110,6 +121,7 @@ export default {
       <div class="grid fn-sum" id="tg-sum"></div>
       <div class="ws-bar"><div class="seg" id="tg-tabs"></div>
         <label class="tg-year">📅 <select id="tg-year" aria-label="Pilih tahun"></select></label></div>
+      <div class="tg-kats" id="tg-kats" role="tablist" aria-label="Kategori target"></div>
       <div class="tg-grid" id="tg-list"></div>`;
     el.querySelector('#tg-add').onclick = () => openForm();
     el.querySelector('#tg-list').onclick = onClick;
@@ -193,7 +205,7 @@ function draw() {
 }
 
 function drawSummary() {
-  const inY = targets.filter(inYear);
+  const inY = targets.filter(t => inYear(t) && inKat(t));
   const act = inY.filter(t => t.status === 'aktif');
   const avg = act.length ? act.reduce((s, t) => s + prog(t).pct, 0) / act.length : 0;
   const done = inY.filter(t => t.status === 'tercapai').length;
@@ -212,24 +224,43 @@ function drawSummary() {
 }
 
 function drawTabs() {
-  const n = s => targets.filter(t => t.status === s && inYear(t)).length;
+  const n = s => targets.filter(t => t.status === s && inYear(t) && inKat(t)).length;
   const box = el.querySelector('#tg-tabs');
   box.innerHTML = [['aktif', '🎯 Aktif'], ['tercapai', '🏆 Tercapai'], ['batal', '🗃️ Arsip']].map(([k, l]) =>
     `<button class="${tab === k ? 'active' : ''}" data-tab="${k}">${l} (${n(k)})</button>`).join('');
   box.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; drawTabs(); drawList(); });
+  drawKats();
+}
+
+function drawKats() {
+  const base = targets.filter(t => t.status === tab && inYear(t));
+  const cnt = k => base.filter(t => katOf(t) === k).length;
+  const shown = KAT.filter(x => x.k !== 'Lainnya' || cnt('Lainnya') || kat === 'Lainnya');
+  const box = el.querySelector('#tg-kats');
+  box.innerHTML = `<button class="tg-kat ${kat === 'all' ? 'active' : ''}" data-kat="all">Semua <b>${base.length}</b></button>` +
+    shown.map(x => `<button class="tg-kat ${kat === x.k ? 'active' : ''}" data-kat="${esc(x.k)}">${x.icon} ${esc(x.k)} <b>${cnt(x.k)}</b></button>`).join('');
+  box.querySelectorAll('[data-kat]').forEach(b => b.onclick = () => { kat = b.dataset.kat; drawSummary(); drawTabs(); drawList(); });
 }
 
 function drawList() {
-  const list = targets.filter(t => t.status === tab && inYear(t));
+  const list = targets.filter(t => t.status === tab && inYear(t) && inKat(t));
   const box = el.querySelector('#tg-list');
   if (!list.length) {
     box.innerHTML = `<div class="card empty ws-empty"><div class="empty-icon">${tab === 'tercapai' ? '🏆' : persona().mascot}</div>
-      <p class="muted">${tab === 'aktif' && year !== 'all' && targets.some(t => t.status === 'aktif') ? `Tidak ada target aktif di tahun ${year}.`
+      <p class="muted">${kat !== 'all' && targets.some(t => t.status === tab && inYear(t)) ? `Belum ada target ${tab === 'aktif' ? 'aktif' : tab === 'tercapai' ? 'tercapai' : 'di arsip'} untuk kategori ${esc(kat)}${year !== 'all' ? ' di ' + year : ''}.`
+        : tab === 'aktif' && year !== 'all' && targets.some(t => t.status === 'aktif') ? `Tidak ada target aktif di tahun ${year}.`
         : tab === 'aktif' ? (state.readOnly ? 'Belum ada target aktif.' : 'Belum ada target. Tulis satu tujuan besar — lalu biarkan progresnya terisi otomatis dari modul lain.')
         : tab === 'tercapai' ? 'Belum ada target yang tercapai. Pasti segera!' : 'Arsip kosong.'}</p></div>`;
     return;
   }
-  box.innerHTML = list.map((t, i) => card(t, i)).join('');
+  if (kat !== 'all') { box.innerHTML = list.map((t, i) => card(t, i)).join(''); return; }
+  // "Semua": dikelompokkan per kategori
+  let i = 0;
+  box.innerHTML = KATEGORI.map(k => {
+    const g = list.filter(t => katOf(t) === k);
+    if (!g.length) return '';
+    return `<h3 class="tg-group">${katIcon(k)} ${esc(k)} <span class="muted small">${g.length} target</span></h3>` + g.map(t => card(t, i++)).join('');
+  }).join('');
 }
 
 function card(t, i) {
@@ -254,7 +285,7 @@ function card(t, i) {
         <div class="ring tg-ring" style="--pct:${p.pct}"><span>${Math.floor(p.pct)}%</span></div>
         <div class="tg-head">
           <button class="tg-name" data-act="detail">${esc(t.icon)} ${esc(t.judul)}</button>
-          <div class="tg-tags"><span class="pill">${esc(t.kategori || 'Lainnya')}</span><span class="pill tg-span">${spanLabel(t)}</span><span class="muted small">${tp.icon} ${tp.label}</span></div>
+          <div class="tg-tags"><span class="pill">${katIcon(katOf(t))} ${esc(katOf(t))}</span><span class="pill tg-span">${spanLabel(t)}</span><span class="muted small">${tp.icon} ${tp.label}</span></div>
         </div>
       </div>
       <div class="tg-val">
@@ -355,7 +386,7 @@ async function openForm(t = null) {
       <form class="sched-form" autocomplete="off">
         <label>Target kamu<input name="judul" required maxlength="80" placeholder="Contoh: Dana darurat 50 juta, Lulus HSK 4, Turun 5 kg" value="${esc(keep?.judul ?? t?.judul ?? '')}"></label>
         <div class="row">
-          <label>Kategori<select name="kategori">${KATEGORI.map(k => `<option ${k === (keep?.kategori ?? t?.kategori ?? 'Pribadi') ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
+          <label>Kategori<select name="kategori">${KAT.map(x => `<option value="${x.k}" ${x.k === (keep?.kategori ?? (t ? katOf(t) : kat !== 'all' ? kat : 'Keuangan & Investasi')) ? 'selected' : ''}>${x.icon} ${x.k}</option>`).join('')}</select></label>
           <label>Mulai<input type="date" name="mulai" required value="${keep?.mulai ?? t?.mulai ?? defaultStart()}"></label>
           <label><span>Deadline <small class="muted">(opsional)</small></span><input type="date" name="deadline" value="${keep?.deadline ?? t?.deadline ?? ''}"></label>
         </div>
@@ -549,7 +580,7 @@ function openDetail(t) {
       <div class="stat"><b>${t.tipe_progress === 'milestone' ? p.target : fmtVal(t, p.target)}</b><span>Target</span></div>
       <div class="stat"><b>${t.deadline ? (p.pace ? (p.pace.left >= 0 ? p.pace.left + ' hari' : 'Lewat') : fmtD(t.deadline)) : '–'}</b><span>${t.deadline ? 'Sisa waktu · ' + fmtD(t.deadline) : 'Tanpa deadline'}</span></div>
     </div>
-    <p class="muted small">${esc(t.kategori || '')} · ${tp.icon} ${tp.label} · mulai ${fmtShort(t.mulai)}</p>
+    <p class="muted small">${katIcon(katOf(t))} ${esc(katOf(t))} · ${tp.icon} ${tp.label} · mulai ${fmtShort(t.mulai)}</p>
     ${p.pace && t.status === 'aktif' ? `<div class="pace-bar"><div class="progress"><i style="width:${p.pct}%"></i></div>
       <span class="pace-mark" style="left:${p.pace.expected}%" title="Seharusnya sudah ${Math.round(p.pace.expected)}%"></span>
       <small class="muted">Garis = posisi ideal hari ini (${Math.round(p.pace.expected)}%)</small></div>` : ''}
