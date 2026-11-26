@@ -1062,3 +1062,11 @@ body.read-only .txn { cursor: default; }
 }
 
 .relogin-note { text-align: center; margin: 0 0 14px; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
+
+/* Invest: samakan modal */
+.pill.adj { background: color-mix(in srgb, var(--primary) 16%, transparent); }
+.adj-seg { display: flex; flex-wrap: wrap; margin-bottom: 12px; }
+.adj-seg button { flex: 1 1 auto; }
+.adj-prev { margin: 10px 0 4px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface-2); display: grid; gap: 6px; }
+.adj-row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.adj-prev p { margin: 2px 0 0; }

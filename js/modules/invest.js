@@ -242,15 +242,18 @@ function openDetail(a) {
       <button class="btn btn-sm" data-act="beli">＋ Beli / tambah</button>
       ${p.units ? '<button class="btn btn-ghost btn-sm" data-act="jual">➖ Jual</button>' : ''}
       ${a.jenis !== 'crypto' ? `<button class="btn btn-ghost btn-sm" data-act="price">✏️ Update ${a.jenis === 'deposito' ? 'nominal' : 'harga'}</button>` : ''}
+      ${p.units && a.jenis !== 'deposito' ? '<button class="btn btn-ghost btn-sm" data-act="modal">⚖️ Samakan modal</button>' : ''}
       <button class="btn btn-ghost btn-sm" data-act="edit">⚙️ Edit aset</button>
     </div>
     <h3 class="sched-list-title">Riwayat transaksi</h3>
     ${list.length ? `<table class="set-table iv-txt"><thead><tr><th>Tanggal</th><th>Tipe</th><th>${a.jenis === 'deposito' ? '' : 'Unit'}</th><th>${a.jenis === 'deposito' ? 'Nominal' : 'Harga'}</th><th></th></tr></thead>
       <tbody>${list.map(t => `<tr>
         <td>${fmtShort(t.tanggal)}</td>
+        ${isAdj(t) ? `<td><span class="pill adj">⚖️ Penyesuaian</span></td><td>–</td>
+        <td>modal ${Number(t.fee) >= 0 ? '+' : '−'}${fmtNative(Math.abs(Number(t.fee)), cur)}</td>` : `
         <td><span class="pill ${t.tipe}">${t.tipe === 'beli' ? 'Beli' : 'Jual'}</span></td>
         <td>${a.jenis === 'deposito' ? '' : fmtUnit(t.unit)}</td>
-        <td>${fmtNative(a.jenis === 'deposito' ? Number(t.harga) * Number(t.unit) : t.harga, cur)}${Number(t.fee) ? `<br><small class="muted">fee ${fmtNative(t.fee, cur)}</small>` : ''}</td>
+        <td>${fmtNative(a.jenis === 'deposito' ? Number(t.harga) * Number(t.unit) : t.harga, cur)}${Number(t.fee) ? `<br><small class="muted">fee ${fmtNative(t.fee, cur)}</small>` : ''}</td>`}
         <td data-edit><button class="icon-btn sm" data-del="${t.id}" title="Hapus">🗑️</button></td></tr>`).join('')}</tbody></table>`
       : '<p class="muted">Belum ada transaksi.</p>'}`;
 
@@ -259,6 +262,7 @@ function openDetail(a) {
   act('jual', () => openTxn(a, 'jual'));
   act('price', () => openPrice(a));
   act('edit', () => openAsset(a));
+  act('modal', () => openAdjust(a));
   m.body.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
     if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Yakin?'; b.classList.add('danger'); return; }
     try { assertCanEdit(); } catch (e) { return toast(e.message, 'error'); }
@@ -571,6 +575,85 @@ function openTxn(a, tipe) {
       const gain = row.unit * row.harga - row.fee - p.avg * row.unit;
       gain > 0 ? (celebrate(), setTimeout(() => sticker('💰 Cuan terealisasi!'), 600)) : toast('Penjualan tercatat');
     } else sticker();
+  };
+}
+
+// ---------- Samakan modal dengan exchange (Indodax, Pintu, broker…) ----------
+// Disimpan sebagai transaksi "beli 0 unit" dengan fee = selisih modal → jumlah koin tetap,
+// hanya modal (& harga rata-rata) yang bergeser. Bisa dihapus dari riwayat kapan saja.
+const ADJ_NOTE = '⚖️ Penyesuaian modal';
+const isAdj = t => Number(t.unit) === 0 && String(t.catatan || '').startsWith('⚖️');
+const signedNum = s => { s = String(s).trim(); const neg = /^[-−–]/.test(s) || /^\(.*\)$/.test(s); const v = num(s.replace(/^[-−–+]|[()%]/g, '')); return neg ? -v : v; };
+
+function openAdjust(a) {
+  try { assertCanEdit(); } catch (e) { return toast(e.message, 'error'); }
+  const p = posOf(a), j = JENIS[a.jenis], cur = a.currency === 'IDR' ? 'IDR' : 'USD', lbl = cur === 'IDR' ? 'Rp' : '$';
+  const show = n => fmtNative(n, cur);
+  const v0 = n => String(Math.round(n * (cur === 'IDR' ? 1 : 100)) / (cur === 'IDR' ? 1 : 100)).replace('.', ',');
+  let mode = 'pl';
+  const m = modal({ title: `⚖️ Samakan modal · ${a.nama}` });
+  m.body.innerHTML = `
+    <form class="sched-form adj-form" autocomplete="off">
+      <p class="muted small">Isi angka dari aplikasi ${esc(a.platform || 'exchange')} kamu. Jumlah ${j.unit} tidak berubah — hanya <b>modal</b> & <b>harga rata-rata</b> yang disesuaikan.</p>
+      <div class="seg adj-seg">
+        <button type="button" data-m="pl" class="active">Dari Unrealized P&L</button>
+        <button type="button" data-m="avg">Dari harga rata-rata</button>
+        <button type="button" data-m="cost">Dari total modal</button>
+      </div>
+      <div id="adj-in"></div>
+      <div class="adj-prev" id="adj-prev"></div>
+      <div class="form-actions"><button class="btn" type="submit">⚖️ Samakan</button></div>
+    </form>`;
+  const f = m.body.querySelector('form'), box = f.querySelector('#adj-in'), prev = f.querySelector('#adj-prev');
+  const fields = () => {
+    box.innerHTML = mode === 'pl' ? `
+      <div class="row">
+        <label class="grow">Nilai aset di exchange (${lbl})<input name="nilai" inputmode="decimal" value="${v0(p.value)}"></label>
+        <label class="grow">Unrealized P&L (${lbl})<input name="pl" inputmode="decimal" placeholder="contoh: -9.995.307"></label>
+      </div>
+      <p class="muted small">Tulis tanda minus kalau rugi. Modal = nilai − P&L.</p>`
+      : mode === 'avg' ? `<label>Harga rata-rata per ${j.unit} (${lbl})<input name="avg" inputmode="decimal" placeholder="${v0(p.avg)}"></label>`
+      : `<label>Total modal (${lbl})<input name="cost" inputmode="decimal" placeholder="${v0(p.cost)}"></label>`;
+    box.querySelectorAll('input').forEach(i => i.oninput = calc);
+    (box.querySelector('[name=pl],[name=avg],[name=cost]'))?.focus();
+    calc();
+  };
+  const target = () => {
+    if (mode === 'pl') {
+      const pl = f.pl.value.trim(); if (!pl) return null;
+      const nilai = num(f.nilai.value); if (!(nilai > 0)) return null;
+      return nilai - signedNum(pl);
+    }
+    if (mode === 'avg') { const v = num(f.avg.value); return v > 0 ? v * p.units : null; }
+    const v = num(f.cost.value); return v > 0 ? v : null;
+  };
+  function calc() {
+    const c = target();
+    if (c == null) { prev.innerHTML = `<span class="muted">Modal sekarang di app: <b>${show(p.cost)}</b> · rata-rata ${show(p.avg)}</span>`; return; }
+    if (!(c > 0)) { prev.innerHTML = '<span class="amt-out">Modal hasil hitungan tidak masuk akal — cek lagi angkanya.</span>'; return; }
+    const pl = p.value - c, d = c - p.cost;
+    prev.innerHTML = `
+      <div class="adj-row"><span>Modal</span><b>${show(p.cost)} → ${show(c)}</b></div>
+      <div class="adj-row"><span>Harga rata-rata</span><b>${show(p.avg)} → ${show(c / p.units)}</b></div>
+      <div class="adj-row"><span>Unrealized P&L (harga ${p.priceSrc === 'live' ? 'live' : 'terakhir'})</span>
+        <b class="${pl >= 0 ? 'amt-in' : 'amt-out'}">${pl >= 0 ? '+' : '−'}${show(Math.abs(pl))} (${pctStr(pl / c * 100)})</b></div>
+      <p class="muted small">Selisih modal ${d >= 0 ? '+' : '−'}${show(Math.abs(d))} dicatat sebagai "Penyesuaian modal".</p>`;
+  }
+  f.querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
+    mode = b.dataset.m; f.querySelectorAll('[data-m]').forEach(x => x.classList.toggle('active', x === b)); fields();
+  });
+  fields();
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const c = target();
+    if (!(c > 0)) return toast('Isi angkanya dulu', 'error');
+    const delta = Math.round((c - p.cost) * 100) / 100;
+    if (Math.abs(delta) < 0.01) { m.close(); return toast('Modal sudah sama 👍'); }
+    const row = { investment_id: a.id, tipe: 'beli', unit: 0, harga: p.price ?? p.avg ?? 0, fee: delta, tanggal: today(), catatan: ADJ_NOTE };
+    const { data, error } = await sb.from('invest_txns').insert(row).select().single();
+    if (error) return toast('Gagal menyimpan: ' + error.message, 'error');
+    txns.set(a.id, [...(txns.get(a.id) || []), data]);
+    m.close(); draw(); sticker('⚖️ Modal disamakan!');
   };
 }
 
