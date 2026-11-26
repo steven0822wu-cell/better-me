@@ -45,7 +45,9 @@ async function init() {
 
   state.me = profiles.find(p => p.id === session.user.id);
   if (!state.me) return fatal('Akun ini belum punya profil. Jalankan sql/02_setup_akun.sql.');
-  state.other = profiles.find(p => p.id !== state.me.id) || null;
+  state.all = profiles;
+  state.others = visibleOthers(profiles, state.me);
+  state.refreshProfiles = refreshProfiles;
 
   applyTheme(state.me.theme);
   buildAmbient();
@@ -73,22 +75,50 @@ function buildNav() {
   $('#bottom-nav').innerHTML = html;
 }
 
+// Siapa saja yang boleh dipantau (aturan sama dengan database):
+// admin → semua · akun privat → tidak ada · selain itu → semua yang tidak privat
+function visibleOthers(profiles, me) {
+  return profiles.filter(p => p.id !== me.id && p.aktif !== false &&
+    (me.is_admin || (!me.privat && !p.privat)))
+    .sort((a, b) => (b.is_admin ? 1 : 0) - (a.is_admin ? 1 : 0) || String(a.created_at).localeCompare(String(b.created_at)));
+}
+
 function buildViewSwitch() {
   const box = $('#view-switch');
-  if (!state.other) { box.hidden = true; return; }
-  box.innerHTML = `
-    <button data-who="me">Data Saya</button>
-    <button data-who="other">👁 Pantau ${state.other.display_name}</button>`;
-  box.querySelector('[data-who="me"]').onclick = () => setViewing(state.me);
-  box.querySelector('[data-who="other"]').onclick = () => setViewing(state.other);
+  const others = state.others;
+  box.hidden = !others.length;
+  if (!others.length) { box.innerHTML = ''; return; }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  box.innerHTML = `<button data-who="me">Data Saya</button>` + (others.length === 1
+    ? others.map(o => `<button data-who="${o.id}">👁 Pantau ${esc(o.display_name)}</button>`).join('')
+    : `<select class="who-select" aria-label="Pantau akun"><option value="">👁 Pantau…</option>
+        ${others.map(o => `<option value="${o.id}">👁 ${esc(o.display_name)}</option>`).join('')}</select>`);
+  box.querySelectorAll('button[data-who]').forEach(b => b.onclick = () =>
+    setViewing(b.dataset.who === 'me' ? state.me : others.find(o => o.id === b.dataset.who)));
+  const sel = box.querySelector('select');
+  if (sel) sel.onchange = () => setViewing(others.find(o => o.id === sel.value) || state.me);
+}
+
+// Dipanggil setelah admin mengubah personel / privasi
+async function refreshProfiles() {
+  try {
+    const profiles = await loadProfiles();
+    state.all = profiles;
+    const me = profiles.find(p => p.id === state.me.id);
+    if (me) Object.assign(state.me, me);
+    state.others = visibleOthers(profiles, state.me);
+    const still = state.others.find(o => o.id === state.viewing?.id);
+    buildViewSwitch();
+    if (state.readOnly && !still) setViewing(state.me); else updateSwitch();
+  } catch (e) { console.error(e); }
 }
 
 function updateSwitch() {
   const box = $('#view-switch');
-  box.querySelectorAll('button').forEach(b => {
-    const isMe = b.dataset.who === 'me';
-    b.classList.toggle('active', isMe ? !state.readOnly : state.readOnly);
-  });
+  box.querySelectorAll('button').forEach(b =>
+    b.classList.toggle('active', b.dataset.who === 'me' ? !state.readOnly : b.dataset.who === state.viewing?.id));
+  const sel = box.querySelector('select');
+  if (sel) { sel.value = state.readOnly ? state.viewing.id : ''; sel.classList.toggle('active', state.readOnly); }
   const banner = $('#readonly-banner');
   banner.hidden = !state.readOnly;
   if (state.readOnly) banner.textContent = `👁 Mode pantau — kamu melihat data ${state.viewing.display_name} (hanya baca)`;

@@ -1,7 +1,9 @@
 // State global: siapa yang login (me) dan data siapa yang sedang dilihat (viewing)
 export const state = {
   me: null,          // profile user login
-  other: null,       // profile pasangan
+  others: [],        // profil lain yang boleh dipantau
+  all: [],           // semua profil (untuk admin)
+  get other() { return this.others[0] || null; },
   viewing: null,     // profile yang datanya sedang ditampilkan
   get readOnly() { return this.viewing && this.me && this.viewing.id !== this.me.id; }
 };

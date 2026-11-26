@@ -5,6 +5,7 @@ import { logout } from '../auth.js';
 import { toast } from '../ui.js';
 import { fxEnabled, setFx, sticker } from '../fx.js';
 import { renderNotif } from './settings-notif.js';
+import { renderAccount, renderPersonel } from './settings-personel.js';
 
 // Pengaturan selalu milik user login sendiri (tidak terpengaruh mode pantau)
 export default {
@@ -13,9 +14,11 @@ export default {
     el.innerHTML = `
       <h1 class="page-title">Pengaturan</h1>
 
+      <section class="card" id="personel-sec" hidden></section>
+
       <section class="card">
         <h2>Tema</h2>
-        <p class="muted">Tema kamu sendiri — ${state.other ? state.other.display_name : 'pasangan'} punya pilihannya sendiri.</p>
+        <p class="muted">Tema kamu sendiri — tiap akun punya pilihannya sendiri.</p>
         <div class="theme-grid">
           ${THEMES.map(t => `
             <button class="theme-opt ${me.theme === t.id ? 'active' : ''}" data-theme-id="${t.id}">
@@ -47,11 +50,9 @@ export default {
         <p class="muted small">Data tetap disimpan dalam IDR, hanya tampilannya yang dikonversi.</p>
       </section>
 
-      <section class="card">
-        <h2>Akun</h2>
-        <p>Masuk sebagai <b>${me.display_name}</b></p>
-        <button class="btn btn-ghost" id="btn-logout">Keluar</button>
-      </section>`;
+      <section class="card" id="account-sec"></section>`;
+    renderAccount(el.querySelector('#account-sec'));
+    renderPersonel(el.querySelector('#personel-sec'));
 
     el.querySelectorAll('[data-theme-id]').forEach(b => b.onclick = async () => {
       const id = b.dataset.themeId;

@@ -22,16 +22,7 @@
     <div class="brand cover-brand"><span class="brand-mark">BM</span><span class="brand-text">Better Me</span></div>
     <p class="muted cover-sub">Siapa yang mau jadi lebih baik hari ini?</p>
 
-    <div class="role-grid" id="roles">
-      <button class="role-card" data-role="Steve" data-theme="supercar">
-        <span class="role-avatar">S</span>
-        <span class="role-name">Steve</span>
-      </button>
-      <button class="role-card" data-role="Pelaa" data-theme="oldmoney">
-        <span class="role-avatar">P</span>
-        <span class="role-name">Pelaa</span>
-      </button>
-    </div>
+    <div class="role-grid" id="roles"><p class="muted cover-loading">Memuat…</p></div>
 
     <form class="card pw-card" id="pw-form" hidden>
       <p class="pw-title">Masuk sebagai <b id="pw-role"></b></p>
@@ -46,7 +37,7 @@
   <script type="module">
     import { sb } from './js/supabase.js';
     import { login } from './js/auth.js';
-    import { ROLE_EMAILS } from './js/config.js';
+    import * as CFG from './js/config.js';
     import { applyCachedTheme } from './js/theme.js';
     import { buildAmbient, sticker } from './js/fx.js';
     applyCachedTheme();
@@ -61,10 +52,27 @@
     const err = document.getElementById('login-error');
     let role = null;
 
+    let email = null;
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    // Daftar akun dari database (diatur Steve di Pengaturan → Personel).
+    // Kalau SQL 11 belum dijalankan → pakai daftar lama di config.js
+    let people = [];
+    const { data, error } = await sb.rpc('login_profiles');
+    if (!error && data?.length) people = data.map(p => ({ name: p.display_name, email: p.email, theme: p.theme }));
+    else people = Object.entries(CFG.ROLE_EMAILS || {}).map(([name, email]) => ({ name, email, theme: name === 'Pelaa' ? 'oldmoney' : 'supercar' }));
+    roles.classList.toggle('many', people.length > 2);
+    roles.innerHTML = people.map((p, i) => `
+      <button class="role-card" data-i="${i}" data-theme="${esc(p.theme)}" style="animation-delay:${.2 + i * .1}s">
+        <span class="role-avatar">${esc([...p.name][0].toUpperCase())}</span>
+        <span class="role-name">${esc(p.name)}</span>
+      </button>`).join('') || '<p class="error">Belum ada akun.</p>';
+
     roles.querySelectorAll('.role-card').forEach(card => card.onclick = () => {
-      role = card.dataset.role;
+      const p = people[card.dataset.i];
+      role = p.name; email = p.email;
       document.getElementById('pw-role').textContent = role;
-      form.username.value = ROLE_EMAILS[role];
+      form.username.value = email;
       roles.hidden = true; form.hidden = false; err.hidden = true;
       form.password.value = '';
       form.password.focus();
@@ -79,11 +87,12 @@
       const btn = form.querySelector('button[type=submit]');
       btn.disabled = true; btn.textContent = 'Memproses…'; err.hidden = true;
       try {
-        await login(ROLE_EMAILS[role], form.password.value);
+        await login(email, form.password.value);
         sticker('👋 Hai, ' + role + '!');
         setTimeout(() => location.replace('app.html'), 700);
       } catch (ex) {
-        err.textContent = ex.message === 'Invalid login credentials' ? 'Password salah' : ex.message;
+        err.textContent = ex.message === 'Invalid login credentials' ? 'Password salah'
+          : /banned/i.test(ex.message) ? 'Akun ini sedang dinonaktifkan' : ex.message;
         err.hidden = false;
         btn.disabled = false; btn.textContent = 'Masuk';
       }

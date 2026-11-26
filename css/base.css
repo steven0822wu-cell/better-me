@@ -149,6 +149,8 @@ body.loading .loader { display: grid; place-items: center; position: fixed; inse
 .cover-sub { margin: 0 0 28px; }
 .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .role-grid[hidden] { display: none; }
+.role-grid.many { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.cover-loading { grid-column: 1 / -1; text-align: center; }
 .role-card {
   display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 32px 16px;
   cursor: pointer; border-radius: var(--radius); border: 1px solid var(--border);
@@ -1028,3 +1030,33 @@ body.read-only .txn { cursor: default; }
 .tg-kat.active b { background: color-mix(in srgb, var(--primary-text) 22%, transparent); color: inherit; }
 .tg-group { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin: 8px 0 -4px; font-size: 1.05rem; }
 .tg-group:first-child { margin-top: 0; }
+
+/* Pantau banyak akun */
+.who-select { width: auto; min-width: 150px; border: 0; background: transparent; padding: 6px 10px; font-weight: 600; cursor: pointer; }
+.who-select.active { background: var(--primary); color: var(--primary-text); border-radius: calc(var(--radius) * .6); }
+
+/* Pengaturan → Personel */
+.ps-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 12px; }
+.ps-head h2 { margin-bottom: 4px; }
+.ps-head .btn { flex: none; }
+.ps-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ps-item { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "av info priv" "av act act";
+  gap: 6px 14px; align-items: center; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.ps-item.off { opacity: .6; }
+.ps-avatar { grid-area: av; align-self: start; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  font: 800 1.15rem var(--font-head, inherit); background: var(--primary); color: var(--primary-text); }
+.ps-info { grid-area: info; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ps-info b { font-size: 1rem; }
+.ps-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.ps-badges:empty { display: none; }
+.ps-badge { font-size: .72rem; }
+.ps-badge.off { background: color-mix(in srgb, var(--danger) 18%, transparent); }
+.ps-priv { grid-area: priv; font-size: .85rem; gap: 10px; }
+.ps-actions { grid-area: act; display: flex; flex-wrap: wrap; gap: 6px; }
+.ps-form .switch { margin-bottom: 14px; }
+.row-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 560px) {
+  .ps-head { flex-direction: column; } .ps-head .btn { width: 100%; }
+  .ps-item { grid-template-areas: "av info" "priv priv" "act act"; grid-template-columns: auto 1fr; }
+  .ps-priv { justify-content: space-between; padding-top: 6px; border-top: 1px dashed var(--border); }
+}
