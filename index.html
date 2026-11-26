@@ -50,6 +50,10 @@
     const roles = document.getElementById('roles');
     const form = document.getElementById('pw-form');
     const err = document.getElementById('login-error');
+    if (sessionStorage.getItem('bm_relogin')) {
+      sessionStorage.removeItem('bm_relogin');
+      roles.insertAdjacentHTML('beforebegin', '<p class="relogin-note">🔒 Sesi login habis — pilih akunmu & masuk lagi. Datamu aman.</p>');
+    }
     let role = null;
 
     let email = null;

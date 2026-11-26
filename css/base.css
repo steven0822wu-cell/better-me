@@ -1060,3 +1060,5 @@ body.read-only .txn { cursor: default; }
   .ps-item { grid-template-areas: "av info" "priv priv" "act act"; grid-template-columns: auto 1fr; }
   .ps-priv { justify-content: space-between; padding-top: 6px; border-top: 1px dashed var(--border); }
 }
+
+.relogin-note { text-align: center; margin: 0 0 14px; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
